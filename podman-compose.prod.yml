@@ -9,8 +9,6 @@ services:
       - OLLAMA_BASE_URL=http://host.containers.internal:11434
       - OCR_MODEL=deepseek-ocr
       - MODEL_A=qwen3:8b
-      - MODEL_B=gemma3:12b
-      - ARBITER_MODEL=qwen3:8b
     volumes:
       - /tmp/taxdebate_uploads:/tmp/taxdebate_uploads
       - /tmp/taxdebate_sessions:/tmp/taxdebate_sessions

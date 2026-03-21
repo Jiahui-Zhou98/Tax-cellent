@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,6 @@ _STATE_RE  = re.compile(r"^[A-Z]{2}$")
 _ZIP_RE    = re.compile(r"(?<!\d)\d{5}(-\d{4})?(?!\d)(?!\.)")
 _STREET_RE = re.compile(r"^\d+\s+[A-Z]{3,}")            # "210 RIV…", "25 BUS…" (≥3 uppercase)
 
-_LABEL_FONT_SIZE = 8.0   # font sizes BELOW this are presumed labels / secondary text
 _DATA_FONT_SIZE  = 8.0   # font sizes AT or ABOVE this → numeric data value (strong signal)
 
 _ROW_TOL = 20   # y-units that count as "same row"
