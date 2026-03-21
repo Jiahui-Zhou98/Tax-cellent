@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+RUN mkdir -p public
 ENV NEXT_PUBLIC_API_URL=http://localhost:8000
 RUN npm run build
 
