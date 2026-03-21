@@ -127,6 +127,7 @@ Create `backend/.env` to override defaults:
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 MODEL_A=qwen3:8b
+OCR_MODEL=deepseek-ocr
 UPLOAD_DIR=/tmp/taxdebate_uploads
 SESSION_DIR=/tmp/taxdebate_sessions
 MAX_FILE_SIZE_MB=20
@@ -176,7 +177,7 @@ docker compose up --build
 
 ## Screenshots
 
-> _Screenshots will be added here. The UI follows a 6-step wizard flow:_
+![screenshot](./screenshot.png)
 
 | Step               | Screen                                                                         |
 | ------------------ | ------------------------------------------------------------------------------ |
@@ -194,3 +195,25 @@ docker compose up --build
 - No network calls to external APIs — all OCR and LLM inference run via Ollama on your machine.
 - Uploaded files are written to `/tmp/taxdebate_uploads` and session state to `/tmp/taxdebate_sessions` — both cleared on reboot by default.
 - The LLM explainer prompt explicitly forbids the model from producing dollar amounts or recalculating numbers.
+
+---
+
+## Disclaimer & Roadmap
+
+**This is an early-stage project. The tax calculations and AI-generated explanations are for reference only and should not be relied upon for actual tax filing.** Always consult a qualified tax professional before making filing decisions.
+
+The current version uses hardcoded 2025 IRS constants and a simplified single-filer W-2 path. Known limitations include:
+
+- Only federal income tax for single filers is calculated; MFJ, HOH, and other filing statuses are not yet supported.
+- 1099-NEC and 1099-INT forms support OCR extraction but do not have deterministic calculation paths yet.
+- State tax calculation is not implemented.
+- LLM-generated explanations may contain inaccuracies — the numbers in the Calculation Ledger are deterministic, but the plain-English text is AI-generated.
+
+### Future Improvements
+
+- **IRS regulation-backed calculation engine** — replace hardcoded constants with a structured rule system derived from official IRS publications (Rev. Proc., IRC sections), enabling systematic updates when tax law changes.
+- **Expanded form support** — add deterministic calculation paths for 1099-NEC (self-employment tax via Schedule SE), 1099-INT, and additional filing statuses.
+- **State tax estimation** — incorporate state-level brackets and rules for common states.
+- **Tax treaty support** — handle income tax treaty benefits for international students from treaty countries.
+
+The core goal of this project is to demonstrate that **privacy-sensitive tax document analysis can run entirely on-device using local LLMs**, without sending any personal financial data to external servers. Accuracy and coverage will improve over time as the calculation engine is expanded with authoritative IRS source material.
