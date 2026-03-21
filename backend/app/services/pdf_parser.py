@@ -253,9 +253,3 @@ async def extract_structured(file_path: str) -> tuple[str, dict | None, int]:
 
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
-
-
-async def extract_text(file_path: str) -> tuple[str, int]:
-    """Legacy wrapper — returns only (text, page_count)."""
-    text, _json, page_count = await extract_structured(file_path)
-    return text, page_count
