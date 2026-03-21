@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   backend:
-    image: ghcr.io/jiahui-zhou98/taxdebate-backend:latest
+    image: ghcr.io/jiahui-zhou98/tax-cellent-backend:latest
     ports:
       - "8000:8000"
     environment:
@@ -14,7 +14,7 @@ services:
       - /tmp/taxdebate_sessions:/tmp/taxdebate_sessions
 
   frontend:
-    image: ghcr.io/jiahui-zhou98/taxdebate-frontend:latest
+    image: ghcr.io/jiahui-zhou98/tax-cellent-frontend:latest
     ports:
       - "3000:3000"
     environment:

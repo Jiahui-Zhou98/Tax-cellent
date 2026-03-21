@@ -11,8 +11,8 @@ PDF / Image
     │
     ▼
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│  OCR Engine     │───▶│  Human Review UI │───▶│  Tax Engine (Python) │
-│  (local)        │    │  (verify fields) │    │  deterministic math  │
+│  OCR Engine     │───▶│  Human Review UI │───▶│  Tax Engine (Python)│
+│  (local)        │    │  (verify fields) │    │  deterministic math │
 └─────────────────┘    └──────────────────┘    └──────────┬──────────┘
                                                           │ numbers
                                                           ▼
@@ -47,15 +47,15 @@ PDF / Image
 
 To showcase the FICA detection feature during a demo:
 
-| Field | Value |
-|---|---|
-| Form type | W-2 |
-| Box 1 — Wages | $52,000 |
-| Box 2 — Federal withheld | $8,000 |
-| Box 4 — Social Security withheld | $3,224 |
-| Box 6 — Medicare withheld | $754 |
-| Visa type | F-1 |
-| First US entry year | 2024 |
+| Field                            | Value   |
+| -------------------------------- | ------- |
+| Form type                        | W-2     |
+| Box 1 — Wages                    | $52,000 |
+| Box 2 — Federal withheld         | $8,000  |
+| Box 4 — Social Security withheld | $3,224  |
+| Box 6 — Medicare withheld        | $754    |
+| Visa type                        | F-1     |
+| First US entry year              | 2024    |
 
 **Expected output:** $3,750.50 estimated federal refund + amber FICA Handoff Card citing IRC §3121(b)(19) and Form 843.
 
@@ -63,14 +63,14 @@ To showcase the FICA detection feature during a demo:
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
-| Backend | FastAPI, Python 3.10+, Pydantic v2 |
-| OCR | pdfplumber + opendataloader-pdf |
-| LLM inference | Ollama (local) |
-| Tax explanation model | `qwen3:8b` |
-| Containerization | Podman / Docker Compose |
+| Layer                 | Technology                                        |
+| --------------------- | ------------------------------------------------- |
+| Frontend              | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
+| Backend               | FastAPI, Python 3.10+, Pydantic v2                |
+| OCR                   | pdfplumber + opendataloader-pdf                   |
+| LLM inference         | Ollama (local)                                    |
+| Tax explanation model | `qwen3:8b`                                        |
+| Containerization      | Podman / Docker Compose                           |
 
 ---
 
@@ -136,26 +136,43 @@ MAX_FILE_SIZE_MB=20
 
 ## Container Deploy (Podman / Docker)
 
-Requires Ollama running on the host. Podman rootless uses `host.containers.internal` to reach it automatically.
+Pre-built images are published to [GitHub Container Registry](https://github.com/Jiahui-Zhou98/Tax-cellent/pkgs/container/) on every push to `main`.
+
+### Option A — Use pre-built images (recommended)
+
+No need to clone the repo or install Python/Node locally.
 
 ```bash
+# 1. Make sure Ollama is running
+ollama serve
+ollama pull qwen3:8b
+ollama pull deepseek-ocr
+
+# 2. Download the production compose file
+curl -O https://raw.githubusercontent.com/Jiahui-Zhou98/Tax-cellent/main/podman-compose.prod.yml
+
+# 3. Start the services
+podman-compose -f podman-compose.prod.yml up
+# or with Docker:
+docker compose -f podman-compose.prod.yml up
+```
+
+Then visit http://localhost:3000.
+
+### Option B — Build from source
+
+```bash
+git clone https://github.com/Jiahui-Zhou98/Tax-cellent.git
+cd Tax-cellent
+
+ollama serve   # in a separate terminal
+
 podman-compose up --build
 # or
 docker compose up --build
 ```
 
-### Configuration
-
-Create `backend/.env` to override defaults:
-
-```env
-OLLAMA_BASE_URL=http://localhost:11434
-MODEL_A=qwen3:8b
-OCR_MODEL=deepseek-ocr
-UPLOAD_DIR=/tmp/taxdebate_uploads
-SESSION_DIR=/tmp/taxdebate_sessions
-MAX_FILE_SIZE_MB=20
-```
+> **Note:** Podman rootless uses `host.containers.internal` to reach Ollama on the host automatically. If using Docker on Linux, you may need `--add-host=host.containers.internal:host-gateway` or set `OLLAMA_BASE_URL=http://host.docker.internal:11434`.
 
 ## Screenshots
 
