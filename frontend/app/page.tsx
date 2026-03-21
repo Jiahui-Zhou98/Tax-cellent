@@ -989,49 +989,49 @@ function ContextStep({
               : "We use this to determine whether nonresident, treaty, or FICA-related rules may apply."}
           </p>
           {showResidencyTravelQuestions && (
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">
+            <div>
+              <p className="text-xs text-slate-500 mb-1.5">
                 First year you entered the US in the status above
                 <span className="text-slate-700 ml-1">(if relevant, e.g. 2021)</span>
-            </p>
-            <input
-              type="text"
-              placeholder="e.g. 2021"
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
+              </p>
+              <input
+                type="text"
+                placeholder="e.g. 2021"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
           )}
         </div>
       </SectionCard>
 
       {showResidencyTravelQuestions && (
-      <SectionCard title="Days Present in the US" accent="#818cf8">
-        <p className="text-xs text-slate-600 mb-3">
+        <SectionCard title="Days Present in the US" accent="#818cf8">
+          <p className="text-xs text-slate-600 mb-3">
             Count every day you were physically inside the US. Used for substantial presence and nonresident checks when applicable.
-        </p>
-        <div className="space-y-3">
-          {[
-            { label: "Current tax year", value: days0, set: setDays0 },
-            { label: "Prior year", value: days1, set: setDays1 },
-            { label: "Second prior year", value: days2, set: setDays2 },
-          ].map(({ label, value, set }) => (
-            <div key={label} className="flex items-center gap-3">
-              <span className="text-xs text-slate-500 w-36 flex-shrink-0">{label}</span>
-              <input
-                type="number"
-                min={0}
-                max={366}
-                placeholder="—"
-                value={value}
-                onChange={(e) => set(e.target.value)}
-                style={{ ...inputStyle, width: "6rem" }}
-              />
-            </div>
-          ))}
-        </div>
-      </SectionCard>
+          </p>
+          <div className="space-y-3">
+            {[
+              { label: "Current tax year", value: days0, set: setDays0 },
+              { label: "Prior year", value: days1, set: setDays1 },
+              { label: "Second prior year", value: days2, set: setDays2 },
+            ].map(({ label, value, set }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-xs text-slate-500 w-36 flex-shrink-0">{label}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={366}
+                  placeholder="—"
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
+                  style={{ ...inputStyle, width: "6rem" }}
+                />
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       )}
 
       <SectionCard title="Additional Context" accent="#34d399">
