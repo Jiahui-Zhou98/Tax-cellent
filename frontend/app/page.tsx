@@ -876,16 +876,22 @@ function ValidationStep({
   );
 }
 
-// ── Context step (immigration / residency questionnaire) ──────────────────────
+// ── Context step (taxpayer / residency questionnaire) ─────────────────────────
 
-const VISA_OPTIONS = [
+const STATUS_OPTIONS = [
+  { value: "US_CITIZEN", label: "US Citizen / Domestic Filer" },
+  { value: "GREEN_CARD", label: "Green Card Holder / Permanent Resident" },
+  { value: "RESIDENT_ALIEN", label: "Resident for US Tax Purposes" },
   { value: "F-1", label: "F-1 — Student" },
   { value: "J-1", label: "J-1 — Exchange Visitor" },
   { value: "OPT", label: "OPT — Optional Practical Training" },
   { value: "CPT", label: "CPT — Curricular Practical Training" },
   { value: "H-1B", label: "H-1B — Specialty Occupation" },
-  { value: "other", label: "Other / Not Listed" },
+  { value: "other", label: "Other / Not Sure" },
 ];
+
+const DOMESTIC_STATUS_VALUES = new Set(["US_CITIZEN", "GREEN_CARD", "RESIDENT_ALIEN"]);
+const STUDENT_STATUS_VALUES = new Set(["F-1", "J-1", "OPT", "CPT"]);
 
 function ContextStep({
   documentId,
@@ -896,7 +902,7 @@ function ContextStep({
   onConfirm: () => void;
   onBack: () => void;
 }) {
-  const [visaType, setVisaType] = useState("F-1");
+  const [visaType, setVisaType] = useState("US_CITIZEN");
   const [entryDate, setEntryDate] = useState("");
   const [days0, setDays0] = useState("");
   const [days1, setDays1] = useState("");
@@ -917,6 +923,10 @@ function ContextStep({
     fontSize: "0.875rem",
     outline: "none",
   } as React.CSSProperties;
+
+  const isDomesticStatus = DOMESTIC_STATUS_VALUES.has(visaType);
+  const showResidencyTravelQuestions = !isDomesticStatus;
+  const showStudentQuestions = STUDENT_STATUS_VALUES.has(visaType);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -944,9 +954,9 @@ function ContextStep({
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white tracking-tight">Immigration Context</h2>
+          <h2 className="text-2xl font-semibold text-white tracking-tight">Taxpayer Context</h2>
           <p className="text-slate-500 text-sm mt-1">
-            Required for accurate residency classification and filing analysis.
+            Used to tailor residency checks and special tax rules when relevant. Domestic and international filers are both supported.
           </p>
         </div>
         <button
@@ -957,26 +967,32 @@ function ContextStep({
         </button>
       </div>
 
-      <SectionCard title="Visa & Residency" accent="#22d3ee">
+      <SectionCard title="Residency / Status" accent="#22d3ee">
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-slate-500 mb-1.5">Visa type during the tax year</p>
+            <p className="text-xs text-slate-500 mb-1.5">Tax residency or visa status during the tax year</p>
             <select
               value={visaType}
               onChange={(e) => setVisaType(e.target.value)}
               style={inputStyle}
             >
-              {VISA_OPTIONS.map((o) => (
+              {STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value} style={{ background: "#0d1424" }}>
                   {o.label}
                 </option>
               ))}
             </select>
           </div>
+          <p className="text-xs text-slate-600">
+            {isDomesticStatus
+              ? "Domestic filer selected. International-only residency questions are hidden below."
+              : "We use this to determine whether nonresident, treaty, or FICA-related rules may apply."}
+          </p>
+          {showResidencyTravelQuestions && (
           <div>
             <p className="text-xs text-slate-500 mb-1.5">
-              Year you first entered the US as a student or exchange visitor
-              <span className="text-slate-700 ml-1">(e.g. 2021)</span>
+                First year you entered the US in the status above
+                <span className="text-slate-700 ml-1">(if relevant, e.g. 2021)</span>
             </p>
             <input
               type="text"
@@ -986,12 +1002,14 @@ function ContextStep({
               style={inputStyle}
             />
           </div>
+          )}
         </div>
       </SectionCard>
 
+      {showResidencyTravelQuestions && (
       <SectionCard title="Days Present in the US" accent="#818cf8">
         <p className="text-xs text-slate-600 mb-3">
-          Count every day you were physically inside the US. Used for the substantial presence test.
+            Count every day you were physically inside the US. Used for substantial presence and nonresident checks when applicable.
         </p>
         <div className="space-y-3">
           {[
@@ -1014,13 +1032,18 @@ function ContextStep({
           ))}
         </div>
       </SectionCard>
+      )}
 
       <SectionCard title="Additional Context" accent="#34d399">
         <div className="space-y-3">
           {[
-            { label: "I received Form 1042-S (treaty / scholarship income)", value: has1042s, set: setHas1042s },
+            ...(!isDomesticStatus
+              ? [{ label: "I received Form 1042-S (treaty / scholarship income)", value: has1042s, set: setHas1042s }]
+              : []),
             { label: "I want a state tax estimate in addition to federal", value: wantsState, set: setWantsState },
-            { label: "I believe I qualify as an exempt individual (F/J/M/Q within first 5 years)", value: claimsExempt, set: setClaimsExempt },
+            ...(showStudentQuestions
+              ? [{ label: "I believe I qualify as an exempt individual (F/J/M/Q within first 5 years)", value: claimsExempt, set: setClaimsExempt }]
+              : []),
           ].map(({ label, value, set }) => (
             <label key={label} className="flex items-start gap-3 cursor-pointer group">
               <div

@@ -47,7 +47,7 @@ FICA_MEDICARE:     float = 0.0145   # IRC §3101(b)
 
 # F-1/J-1 students are exempt from FICA for their first 5 calendar years in
 # the US on a student/exchange visa.  IRC §3121(b)(19).
-FICA_EXEMPT_VISA_TYPES = {"F-1", "J-1", "F1", "J1"}
+FICA_EXEMPT_VISA_TYPES = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
 FICA_EXEMPT_MAX_YEARS = 5
 
 
