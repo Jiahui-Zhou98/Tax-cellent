@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TaxDebate Local",
+  title: "Tax-cellent Local",
   description: "Privacy-first local tax document review",
 };
 
@@ -29,11 +29,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   boxShadow: "0 0 16px rgba(34,211,238,0.35)",
                 }}
               >
-                TD
+                TC
               </div>
               <div>
                 <h1 className="text-sm font-semibold text-white tracking-wide">
-                  TaxDebate
+                  Tax-cellent
                   <span className="text-cyan-400 ml-1">Local</span>
                 </h1>
                 <p className="text-xs text-slate-600">

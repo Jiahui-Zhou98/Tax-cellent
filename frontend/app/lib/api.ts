@@ -36,6 +36,11 @@ export interface UserContext {
   claims_exempt_individual: boolean;
 }
 
+export interface AnalysisPreferences {
+  provider: "ollama" | "openai" | "anthropic" | "gemini";
+  model?: string;
+}
+
 export interface CalculationStep {
   step_number: number;
   label: string;
@@ -102,8 +107,15 @@ export async function confirmFields(
   return res.json();
 }
 
-export async function analyzeDocument(document_id: string): Promise<TaxReport> {
-  const res = await fetch(`${API_BASE}/api/analyze/${document_id}`, { method: "POST" });
+export async function analyzeDocument(
+  document_id: string,
+  preferences: AnalysisPreferences
+): Promise<TaxReport> {
+  const res = await fetch(`${API_BASE}/api/analyze/${document_id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(preferences),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "Analysis failed");

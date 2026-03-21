@@ -7,9 +7,9 @@ import {
   saveContext,
   confirmFields,
   analyzeDocument,
+  AnalysisPreferences,
   OCROutput,
   ValidationOutput,
-  UserContext,
   TaxReport,
 } from "./lib/api";
 
@@ -692,15 +692,49 @@ function FieldReviewStep({
 
 // ── Validation step ───────────────────────────────────────────────────────────
 
+const ANALYSIS_PROVIDER_OPTIONS: {
+  value: AnalysisPreferences["provider"];
+  label: string;
+  hint: string;
+  placeholder: string;
+}[] = [
+  {
+    value: "ollama",
+    label: "Local Ollama",
+    hint: "Uses the Ollama model configured on your machine.",
+    placeholder: "Optional override, e.g. qwen3:8b",
+  },
+  {
+    value: "openai",
+    label: "ChatGPT / OpenAI",
+    hint: "Uses the OpenAI API key configured in the backend.",
+    placeholder: "Optional override, e.g. gpt-5.2",
+  },
+  {
+    value: "anthropic",
+    label: "Claude / Anthropic",
+    hint: "Uses the Anthropic API key configured in the backend.",
+    placeholder: "Optional override, e.g. claude-sonnet-4-20250514",
+  },
+  {
+    value: "gemini",
+    label: "Gemini / Google",
+    hint: "Uses the Gemini API key configured in the backend.",
+    placeholder: "Optional override, e.g. gemini-3-flash-preview",
+  },
+];
+
 function ValidationStep({
   validation,
   onAnalyze,
   onBack,
 }: {
   validation: ValidationOutput;
-  onAnalyze: () => void;
+  onAnalyze: (preferences: AnalysisPreferences) => void;
   onBack: () => void;
 }) {
+  const [provider, setProvider] = useState<AnalysisPreferences["provider"]>("ollama");
+  const [model, setModel] = useState("");
 
   const statusCfg = {
     ok:      { label: "PASS", icon: "✓", color: "#34d399", bg: "rgba(52,211,153,0.06)", bd: "rgba(52,211,153,0.2)" },
@@ -708,6 +742,17 @@ function ValidationStep({
     error:   { label: "FAIL", icon: "✕", color: "#f87171", bg: "rgba(248,113,113,0.06)", bd: "rgba(248,113,113,0.2)" },
   };
   const cfg = statusCfg[validation.status as keyof typeof statusCfg] ?? statusCfg.warning;
+  const selectedProvider = ANALYSIS_PROVIDER_OPTIONS.find((option) => option.value === provider) ?? ANALYSIS_PROVIDER_OPTIONS[0];
+  const inputStyle = {
+    background: "rgba(13,20,36,0.6)",
+    border: "1px solid rgba(71,85,105,0.4)",
+    borderRadius: "0.5rem",
+    color: "#e2e8f0",
+    padding: "0.5rem 0.75rem",
+    width: "100%",
+    fontSize: "0.875rem",
+    outline: "none",
+  } as React.CSSProperties;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -771,6 +816,41 @@ function ValidationStep({
         </div>
       )}
 
+      <SectionCard title="AI Explanation Provider" accent="#22d3ee">
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">
+              Choose the model provider for the report explanations
+            </p>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as AnalysisPreferences["provider"])}
+              style={inputStyle}
+            >
+              {ANALYSIS_PROVIDER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} style={{ background: "#0d1424" }}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-xs text-slate-600">{selectedProvider.hint}</p>
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">Optional model override</p>
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder={selectedProvider.placeholder}
+              style={inputStyle}
+            />
+          </div>
+          <p className="text-xs text-slate-700">
+            This only changes the AI explanations in the final report. Extraction, validation, and tax math stay on the current pipeline.
+          </p>
+        </div>
+      </SectionCard>
+
       <div className="flex gap-3">
         <button
           onClick={onBack}
@@ -780,7 +860,12 @@ function ValidationStep({
           ← Back
         </button>
         <button
-          onClick={onAnalyze}
+          onClick={() =>
+            onAnalyze({
+              provider,
+              model: model.trim() || undefined,
+            })
+          }
           className="flex-1 py-3.5 rounded-xl text-white font-semibold text-sm transition-all"
           style={{ background: "#2563eb", ...glowBtn() }}
         >
@@ -999,9 +1084,11 @@ const ANALYSIS_HINTS = [
 
 function AnalysisStep({
   documentId,
+  preferences,
   onComplete,
 }: {
   documentId: string;
+  preferences: AnalysisPreferences;
   onComplete: (report: TaxReport) => void;
 }) {
   const [hintIndex, setHintIndex] = useState(0);
@@ -1010,7 +1097,7 @@ function AnalysisStep({
   React.useEffect(() => {
     let cancelled = false;
 
-    analyzeDocument(documentId)
+    analyzeDocument(documentId, preferences)
       .then((report) => { if (!cancelled) onComplete(report); })
       .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
 
@@ -1020,14 +1107,14 @@ function AnalysisStep({
 
     return () => { cancelled = true; clearInterval(cycle); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId]);
+  }, [documentId, preferences]);
 
   return (
     <div className="space-y-8 animate-fade-in text-center">
       <div>
         <h2 className="text-2xl font-semibold text-white tracking-tight">Calculating…</h2>
         <p className="text-slate-500 text-sm mt-1">
-          Applying 2025 IRS rules to your confirmed fields.
+          Applying 2025 IRS rules with {preferences.provider === "ollama" ? "a local Ollama model" : `${preferences.provider} for the explanation layer`}.
         </p>
       </div>
 
@@ -1069,7 +1156,8 @@ function CalculationLedgerStep({ report }: { report: TaxReport }) {
   const toggleRow = (n: number) =>
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(n) ? next.delete(n) : next.add(n);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
       return next;
     });
 
@@ -1246,6 +1334,9 @@ export default function Home() {
   const [ocr, setOcr] = useState<OCROutput | null>(null);
   const [validation, setValidation] = useState<ValidationOutput | null>(null);
   const [report, setReport] = useState<TaxReport | null>(null);
+  const [analysisPreferences, setAnalysisPreferences] = useState<AnalysisPreferences>({
+    provider: "ollama",
+  });
 
   return (
     <div>
@@ -1278,7 +1369,10 @@ export default function Home() {
       {step === 3 && validation && (
         <ValidationStep
           validation={validation}
-          onAnalyze={() => setStep(4)}
+          onAnalyze={(preferences) => {
+            setAnalysisPreferences(preferences);
+            setStep(4);
+          }}
           onBack={() => setStep(2)}
         />
       )}
@@ -1287,6 +1381,7 @@ export default function Home() {
       {step === 4 && ocr && (
         <AnalysisStep
           documentId={ocr.document_id}
+          preferences={analysisPreferences}
           onComplete={(r) => { setReport(r); setStep(5); }}
         />
       )}

@@ -15,9 +15,8 @@ import re
 import json
 from pathlib import Path
 from typing import Optional
-from app.schemas.document import CalculationStep, ConfirmedFields, ValidationOutput, TaxReport, UserContext
+from app.schemas.document import AnalysisPreferences, CalculationStep, ConfirmedFields, ValidationOutput, TaxReport, UserContext
 from app.services.llm_client import chat_json
-from app.core.config import settings
 from app.services.tax_engine import calculate
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -36,6 +35,7 @@ async def run_tax_analysis(
     confirmed: ConfirmedFields,
     validation: ValidationOutput,
     user_context: Optional[UserContext] = None,
+    preferences: Optional[AnalysisPreferences] = None,
 ) -> TaxReport:
     """Run the full analysis pipeline:
     1. TaxCalculationEngine computes deterministic steps (no LLM)
@@ -56,7 +56,7 @@ async def run_tax_analysis(
         )
 
     # Step 2: AI batch explanation (graceful fallback on any failure)
-    steps = await _add_explanations(steps)
+    steps = await _add_explanations(steps, preferences)
 
     # Build outcome explanation from the last non-flag step
     outcome_step = next((s for s in reversed(steps) if not s.is_flag), None)
@@ -72,7 +72,10 @@ async def run_tax_analysis(
     )
 
 
-async def _add_explanations(steps: list[CalculationStep]) -> list[CalculationStep]:
+async def _add_explanations(
+    steps: list[CalculationStep],
+    preferences: Optional[AnalysisPreferences] = None,
+) -> list[CalculationStep]:
     """Call the LLM once to get explanations for all steps.
 
     Returns steps with .explanation filled.
@@ -94,12 +97,13 @@ async def _add_explanations(steps: list[CalculationStep]) -> list[CalculationSte
 
     try:
         data = await chat_json(
-            settings.MODEL_A,
+            preferences.model if preferences else None,
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_content},
             ],
             temperature=0.0,
+            provider=preferences.provider if preferences else "ollama",
         )
     except Exception:
         # LLM unavailable — fall back to templates for all steps

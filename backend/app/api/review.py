@@ -2,8 +2,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.schemas.document import (
     ConfirmedFields, ValidationOutput, FieldValue,
-    UserContext, TaxReport,
+    UserContext, TaxReport, AnalysisPreferences, LLMProvider,
 )
+from app.services.llm_client import ensure_provider_configured
 from app.services.validation_service import validate
 from app.services.tax_advisor import run_tax_analysis
 from app.storage.session_store import load_session, save_session
@@ -15,6 +16,11 @@ class ConfirmRequest(BaseModel):
     document_id: str
     confirmed_fields: dict[str, dict]
     unresolved_fields: list[str] = []
+
+
+class AnalyzeRequest(BaseModel):
+    provider: LLMProvider = LLMProvider.OLLAMA
+    model: str | None = None
 
 
 @router.post("/context/{document_id}")
@@ -60,7 +66,7 @@ async def confirm_fields(req: ConfirmRequest):
 
 
 @router.post("/analyze/{document_id}", response_model=TaxReport)
-async def analyze_document(document_id: str):
+async def analyze_document(document_id: str, req: AnalyzeRequest):
     try:
         session = load_session(document_id)
     except FileNotFoundError:
@@ -72,12 +78,20 @@ async def analyze_document(document_id: str):
     confirmed = session.confirmed_fields
     validation = session.validation_output or ValidationOutput(status="ok")
     user_context = session.user_context
+    preferences = AnalysisPreferences(provider=req.provider, model=req.model)
 
+    if preferences.provider != "ollama":
+        try:
+            ensure_provider_configured(preferences.provider)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+    session.analysis_preferences = preferences
     session.status = "analyzing"
     save_session(session)
 
     try:
-        report = await run_tax_analysis(confirmed, validation, user_context)
+        report = await run_tax_analysis(confirmed, validation, user_context, preferences)
     except Exception as e:
         raise HTTPException(502, f"Analysis failed: {str(e)}")
 

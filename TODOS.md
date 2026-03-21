@@ -1,4 +1,4 @@
-# TaxDebate Local — TODOs
+# Tax-cellent Local — TODOs
 
 ## Post-Hackathon Design Debt
 

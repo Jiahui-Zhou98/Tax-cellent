@@ -1,4 +1,4 @@
-# TaxDebate Local
+# Tax-cellent Local
 
 A **privacy-first, fully local** tax document review system for international students and workers in the US. Upload your W-2, answer a few immigration questions, and get a step-by-step federal tax calculation — with no data ever leaving your machine.
 
@@ -34,11 +34,12 @@ PDF / Image
 
 ## Features
 
-- **100% on-device** — OCR, LLM inference, and all tax math run locally via Ollama. Nothing is sent to any external server.
+- **Local-first by default** — OCR, extraction, validation, and tax math stay local. The final explanation layer can now use Ollama or an optional cloud provider.
 - **Calculation Ledger** — a step-by-step table (Gross Wages → Standard Deduction → Taxable Income → Federal Tax → Balance) with inline expandable explanations and IRS rule citations.
 - **FICA Refund Detection** — automatically flags Social Security and Medicare taxes incorrectly withheld from F-1/J-1 students (IRC §3121(b)(19)), with Form 843 guidance.
 - **Human-in-the-loop verification** — extracted fields are shown for review and editing before any calculation runs.
-- **Graceful LLM fallback** — if Ollama is down, the ledger renders with template explanations. The numbers are always correct.
+- **Provider choice at analysis time** — users can choose a local Ollama model or a cloud provider such as OpenAI, Claude, or Gemini for the final step explanations.
+- **Graceful LLM fallback** — if the explainer call fails, the ledger renders with template explanations. The numbers are always correct.
 - **2025 IRS constants** — brackets, standard deduction ($14,600), FICA rates and wage caps sourced from Rev. Proc. 2024-40.
 
 ---
@@ -68,8 +69,8 @@ To showcase the FICA detection feature during a demo:
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
 | Backend | FastAPI, Python 3.10+, Pydantic v2 |
 | OCR | pdfplumber + opendataloader-pdf |
-| LLM inference | Ollama (local) |
-| Tax explanation model | `qwen3:8b` |
+| LLM inference | Ollama by default, optional OpenAI / Claude / Gemini for report explanations |
+| Default explanation model | `qwen3:8b` locally, provider defaults configurable in `backend/.env` |
 | Containerization | Podman / Docker Compose |
 
 ---
@@ -136,10 +137,18 @@ Create `backend/.env` to override defaults:
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 MODEL_A=qwen3:8b
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5.2
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3-flash-preview
 UPLOAD_DIR=/tmp/taxdebate_uploads
 SESSION_DIR=/tmp/taxdebate_sessions
 MAX_FILE_SIZE_MB=20
 ```
+
+Cloud keys are optional. If they are absent, the app still works with local Ollama and deterministic template fallbacks.
 
 ---
 
@@ -210,6 +219,6 @@ All 17 tests cover the demo scenario (F-1, FICA flags), H-1B (no FICA flag), mis
 
 ## Privacy
 
-- No network calls to external APIs — all OCR and LLM inference run via Ollama on your machine.
+- By default, OCR and LLM inference run via Ollama on your machine. If a user explicitly selects OpenAI, Claude, or Gemini for the analysis explanation step, that prompt is sent to the chosen cloud provider.
 - Uploaded files are written to `/tmp/taxdebate_uploads` and session state to `/tmp/taxdebate_sessions` — both cleared on reboot by default.
 - The LLM explainer prompt explicitly forbids the model from producing dollar amounts or recalculating numbers.

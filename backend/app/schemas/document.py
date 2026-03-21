@@ -21,6 +21,18 @@ class FormType(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class LLMProvider(str, Enum):
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+
+
+class AnalysisPreferences(BaseModel):
+    provider: LLMProvider = LLMProvider.OLLAMA
+    model: Optional[str] = None
+
+
 class FieldValue(BaseModel):
     value: Optional[str] = None
     confidence: float = 0.0
@@ -102,5 +114,6 @@ class SessionState(BaseModel):
     confirmed_fields: Optional[ConfirmedFields] = None
     validation_output: Optional[ValidationOutput] = None
     tax_report: Optional[TaxReport] = None
+    analysis_preferences: Optional[AnalysisPreferences] = None
     status: str = "uploaded"
     # status values: uploaded | ocr_done | confirmed | validated | analyzing | complete
