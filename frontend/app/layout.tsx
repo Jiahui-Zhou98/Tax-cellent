@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tax-cellent Local",
+  title: "Tax-cellent",
   description: "Privacy-first local tax document review",
 };
 
@@ -34,7 +34,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div>
                 <h1 className="text-sm font-semibold text-white tracking-wide">
                   Tax-cellent
-                  <span className="text-cyan-400 ml-1">Local</span>
                 </h1>
                 <p className="text-xs text-slate-600">
                   Privacy-first · On-device AI

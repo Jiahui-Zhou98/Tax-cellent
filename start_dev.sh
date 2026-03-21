@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Tax-cellent Local — Dev Start ==="
+echo "=== Tax-cellent — Dev Start ==="
 echo ""
 
 # Check Ollama

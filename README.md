@@ -1,4 +1,4 @@
-# TaxDebate Local
+# Tax-cellent
 
 A **privacy-first, fully local** tax document review system for international students and workers in the US. Upload your W-2, answer a few immigration questions, and get a step-by-step federal tax calculation — with no data ever leaving your machine.
 

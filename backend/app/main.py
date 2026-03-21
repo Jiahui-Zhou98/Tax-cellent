@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import upload, review, health
 
 app = FastAPI(
-    title="Tax-cellent Local",
+    title="Tax-cellent",
     description="Privacy-first local tax document review system",
     version="0.1.0",
 )
