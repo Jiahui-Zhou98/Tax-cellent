@@ -1,0 +1,53 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Runtime data (uploaded files & sessions live in /tmp by default) ──────────
+# Override SESSION_DIR / UPLOAD_DIR in .env to use a local path;
+# if you do, add those paths here too.
+uploads/
+sessions/
+*.session.json
+
+# ── Node / Next.js ────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/tsconfig.tsbuildinfo
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Keep Dockerfiles and compose — ignore local override files
+docker-compose.override.yml
+podman-compose.override.yml

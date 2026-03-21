@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Podman rootless uses host.containers.internal to reach the host
+      - OLLAMA_BASE_URL=http://host.containers.internal:11434
+      - OCR_MODEL=deepseek-ocr
+      - MODEL_A=qwen3:8b
+      - MODEL_B=gemma3:12b
+      - ARBITER_MODEL=qwen3:8b
+    volumes:
+      - /tmp/taxdebate_uploads:/tmp/taxdebate_uploads
+      - /tmp/taxdebate_sessions:/tmp/taxdebate_sessions
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend

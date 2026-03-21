@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #060b14;
+  --accent-cyan: #22d3ee;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(34,211,238,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(59,130,246,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 1px 1px, rgba(148,163,184,0.05) 1px, transparent 0);
+  background-size: auto, auto, 28px 28px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+
+/* Fade in animation */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out forwards;
+}
+
+/* Pulse glow */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
