@@ -895,3 +895,152 @@ def calculate(
         # Default to W-2 if form_type is missing (legacy / OCR fallback)
         return _calculate_w2(confirmed, user_context)
     return [], "unknown", None
+
+
+# ---------------------------------------------------------------------------
+# IRS Tax Treaty Table — Student / Apprentice Income (Pub 901, Table 1)
+# Source: IRS Publication 901 (2024 edition)
+# Schema per entry:
+#   country:    display name
+#   article:    treaty article citation
+#   annual_cap: maximum exempt income per year (USD)
+#   max_years:  maximum years of eligibility (None = unlimited)
+#
+# NOTE: These cover wages / personal-services income earned while studying.
+# Scholarship/fellowship income is often separately exempt (Article varies).
+# Form 8833 (Treaty-Based Return Position Disclosure) is REQUIRED when
+# claiming a treaty exemption that reduces US tax liability (IRC §6114).
+# ---------------------------------------------------------------------------
+
+TREATY_TABLE: dict[str, dict] = {
+    "BD": {"country": "Bangladesh",           "article": "Art. 21",                 "annual_cap": 9_000.0,  "max_years": None},
+    "BY": {"country": "Belarus",              "article": "Art. 18",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "BE": {"country": "Belgium",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "BG": {"country": "Bulgaria",             "article": "Art. 18",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "CA": {"country": "Canada",               "article": "Art. XXI",                "annual_cap": 9_000.0,  "max_years": 5},
+    "CN": {"country": "China (PRC)",          "article": "Special Protocol Art. 6", "annual_cap": 5_000.0,  "max_years": 5},
+    "CY": {"country": "Cyprus",               "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "CZ": {"country": "Czech Republic",       "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "DK": {"country": "Denmark",              "article": "Art. 16",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "EG": {"country": "Egypt",                "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "EE": {"country": "Estonia",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "FI": {"country": "Finland",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "FR": {"country": "France",               "article": "Art. 21",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "DE": {"country": "Germany",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 4},
+    "GR": {"country": "Greece",               "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "HU": {"country": "Hungary",              "article": "Art. 23",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "IS": {"country": "Iceland",              "article": "Art. 19",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "IN": {"country": "India",                "article": "Art. 21",                 "annual_cap": 9_000.0,  "max_years": 2},
+    "ID": {"country": "Indonesia",            "article": "Art. 19",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "IE": {"country": "Ireland",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "IL": {"country": "Israel",               "article": "Art. 24",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "IT": {"country": "Italy",                "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "JM": {"country": "Jamaica",              "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "JP": {"country": "Japan",                "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "KZ": {"country": "Kazakhstan",           "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "KG": {"country": "Kyrgyzstan",           "article": "Art. 18 (former USSR)",   "annual_cap": 9_000.0,  "max_years": 5},
+    "KR": {"country": "Korea (South)",        "article": "Art. 21",                 "annual_cap": 2_000.0,  "max_years": 5},
+    "LV": {"country": "Latvia",               "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "LT": {"country": "Lithuania",            "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "LU": {"country": "Luxembourg",           "article": "Art. 21",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "MT": {"country": "Malta",                "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "MX": {"country": "Mexico",               "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "MD": {"country": "Moldova",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "MA": {"country": "Morocco",              "article": "Art. 18",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "NL": {"country": "Netherlands",          "article": "Art. 22",                 "annual_cap": 2_000.0,  "max_years": 5},
+    "NZ": {"country": "New Zealand",          "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "NO": {"country": "Norway",               "article": "Art. 16",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "PK": {"country": "Pakistan",             "article": "Art. 15",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "PH": {"country": "Philippines",          "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "PL": {"country": "Poland",               "article": "Art. 18",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "PT": {"country": "Portugal",             "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "RO": {"country": "Romania",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "RU": {"country": "Russia",               "article": "Art. 18",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "SK": {"country": "Slovak Republic",      "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "SI": {"country": "Slovenia",             "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "ZA": {"country": "South Africa",         "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "ES": {"country": "Spain",                "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "LK": {"country": "Sri Lanka",            "article": "Art. 17",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "SE": {"country": "Sweden",               "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "CH": {"country": "Switzerland",          "article": "Art. 19",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "TJ": {"country": "Tajikistan",           "article": "Art. 18 (former USSR)",   "annual_cap": 9_000.0,  "max_years": 5},
+    "TH": {"country": "Thailand",             "article": "Art. 22",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "TT": {"country": "Trinidad and Tobago",  "article": "Art. 19",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "TN": {"country": "Tunisia",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "TR": {"country": "Turkey",               "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "TM": {"country": "Turkmenistan",         "article": "Art. 18 (former USSR)",   "annual_cap": 9_000.0,  "max_years": 5},
+    "UA": {"country": "Ukraine",              "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "GB": {"country": "United Kingdom",       "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+    "UZ": {"country": "Uzbekistan",           "article": "Art. 18 (former USSR)",   "annual_cap": 9_000.0,  "max_years": 5},
+    "VE": {"country": "Venezuela",            "article": "Art. 20",                 "annual_cap": 9_000.0,  "max_years": 5},
+}
+
+# Visa types that can claim student income treaty exemptions
+_TREATY_ELIGIBLE_VISAS = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
+
+# Visa types for which ITIN guidance is relevant (no SSN issued)
+_ITIN_GUIDANCE_VISAS = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
+
+
+def compute_report_extras(
+    confirmed: ConfirmedFields,
+    user_context: Optional[UserContext],
+) -> tuple[Optional[float], Optional[str], bool]:
+    """Compute treaty_exempt_amount, treaty_country, and needs_itin_guidance.
+
+    Called by tax_advisor.run_tax_analysis() to populate TaxReport extras.
+
+    Returns:
+        treaty_exempt_amount: USD amount exempt under treaty (0 if no treaty applies)
+        treaty_country:       Display name of the treaty country (or None)
+        needs_itin_guidance:  True when student visa + no SSN/ITIN detected
+    """
+    # --- Treaty exemption (Exp 2 / TODO-9) ---
+    treaty_amount: Optional[float] = None
+    treaty_country_name: Optional[str] = None
+
+    if user_context and user_context.country_of_origin:
+        code = user_context.country_of_origin.upper().strip()
+        treaty = TREATY_TABLE.get(code)
+        visa = (user_context.visa_type or "").strip()
+
+        if treaty and visa in _TREATY_ELIGIBLE_VISAS:
+            is_nra = _determine_residency(user_context) == "NRA"
+            if is_nra:
+                # Check max_years eligibility
+                eligible = True
+                if treaty["max_years"] is not None and user_context.first_us_entry_date:
+                    try:
+                        entry_year = int(str(user_context.first_us_entry_date)[:4])
+                        years_elapsed = 2025 - entry_year
+                        eligible = years_elapsed < treaty["max_years"]
+                    except (ValueError, TypeError):
+                        eligible = True  # unknown entry year → assume eligible
+
+                if eligible:
+                    # Get income from confirmed fields
+                    fields = confirmed.confirmed_fields
+                    def _fv(name: str) -> Optional[str]:
+                        fv = fields.get(name)
+                        return fv.value if fv else None
+
+                    income_raw = (
+                        _fv("box_1_wages")
+                        or _fv("box_1_nonemployee_compensation")
+                        or _fv("box_1_interest_income")
+                    )
+                    income = _parse_float(income_raw) or 0.0
+                    exempt = min(income, treaty["annual_cap"])
+                    if exempt > 0:
+                        treaty_amount = round(exempt, 2)
+                        treaty_country_name = treaty["country"]
+
+    # --- ITIN guidance ---
+    needs_itin = False
+    if user_context and (user_context.visa_type or "").strip() in _ITIN_GUIDANCE_VISAS:
+        fields = confirmed.confirmed_fields
+        ssn_fv = fields.get("employee_ssn") or fields.get("recipient_tin")
+        has_ssn = bool(ssn_fv and ssn_fv.value and ssn_fv.value.strip())
+        needs_itin = not has_ssn
+
+    return treaty_amount, treaty_country_name, needs_itin

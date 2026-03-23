@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 from app.schemas.document import AnalysisPreferences, CalculationStep, ConfirmedFields, ValidationOutput, TaxReport, UserContext
 from app.services.llm_client import chat_json
-from app.services.tax_engine import calculate
+from app.services.tax_engine import calculate, compute_report_extras
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -62,6 +62,9 @@ async def run_tax_analysis(
     outcome_step = next((s for s in reversed(steps) if not s.is_flag), None)
     outcome_explanation = outcome_step.explanation if outcome_step and outcome_step.explanation else ""
 
+    # Step 3: Compute treaty exemption + ITIN guidance flags
+    treaty_amount, treaty_country, needs_itin = compute_report_extras(confirmed, user_context)
+
     return TaxReport(
         document_id=confirmed.document_id,
         calculation_steps=steps,
@@ -69,6 +72,9 @@ async def run_tax_analysis(
         estimated_amount=amount,
         outcome_explanation=outcome_explanation,
         validation_results=validation.issues,
+        treaty_exempt_amount=treaty_amount,
+        treaty_country=treaty_country,
+        needs_itin_guidance=needs_itin,
     )
 
 
@@ -104,6 +110,7 @@ async def _add_explanations(
             ],
             temperature=0.0,
             provider=preferences.provider if preferences else "ollama",
+            api_key=preferences.api_key if preferences else None,
         )
     except Exception:
         # LLM unavailable — fall back to templates for all steps

@@ -10,6 +10,7 @@ import { ValidationStep } from "./components/ValidationStep";
 import { SettingsStep } from "./components/SettingsStep";
 import { AnalysisStep } from "./components/AnalysisStep";
 import { CalculationLedgerStep } from "./components/CalculationLedgerStep";
+import { DeadlineBanner } from "./components/DeadlineBanner";
 
 // Step indices:
 // 0 Upload → 1 Context → 2 Review → 3 Validate → 4 Settings → 5 Analysis → 6 Report
@@ -19,6 +20,7 @@ export default function Home() {
   const [ocr, setOcr] = useState<OCROutput | null>(null);
   const [validation, setValidation] = useState<ValidationOutput | null>(null);
   const [report, setReport] = useState<TaxReport | null>(null);
+  const [visaType, setVisaType] = useState<string | undefined>(undefined);
   const [analysisPreferences, setAnalysisPreferences] = useState<AnalysisPreferences>({
     provider: "ollama",
   });
@@ -26,6 +28,7 @@ export default function Home() {
   return (
     <div>
       <StepBar current={step} />
+      <DeadlineBanner visaType={visaType} />
 
       {step === 0 && (
         <UploadStep onUploaded={(o) => { setOcr(o); setStep(1); }} />
@@ -37,6 +40,7 @@ export default function Home() {
           formType={ocr.field_candidates["form_type"]?.value ?? undefined}
           onConfirm={() => setStep(2)}
           onBack={() => { setOcr(null); setStep(0); }}
+          onContextSaved={(vt) => setVisaType(vt)}
         />
       )}
 

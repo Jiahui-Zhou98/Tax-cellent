@@ -84,6 +84,16 @@ def validate(confirmed: ConfirmedFields) -> ValidationOutput:
                     message=f"Tax year {year} seems unusual — expected 2010–{CURRENT_YEAR}",
                     severity="warning",
                 ))
+            elif year < CURRENT_YEAR:
+                issues.append(ValidationIssue(
+                    field="tax_year", type="prior_year",
+                    message=(
+                        f"This document is from {year} — you may need to file a late return "
+                        f"or amended return, not a {CURRENT_YEAR} return. "
+                        f"See IRS instructions for late filing."
+                    ),
+                    severity="warning",
+                ))
 
     # 4. EIN format
     for fname in ("employer_ein", "box_15_employer_state_id", "payer_tin"):

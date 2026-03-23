@@ -14,6 +14,7 @@ class UserContext(BaseModel):
     state_code: Optional[str] = None  # 2-letter state code: CA, NY, TX, WA, IL, MA (or None)
     claims_exempt_individual: bool = False
     nec_business_expenses: Optional[float] = None  # Schedule C deductible expenses for 1099-NEC filers
+    country_of_origin: Optional[str] = None  # ISO 2-letter code, used for treaty lookup (Exp 2)
 
 
 class FormType(str, Enum):
@@ -33,6 +34,7 @@ class LLMProvider(str, Enum):
 class AnalysisPreferences(BaseModel):
     provider: LLMProvider = LLMProvider.OLLAMA
     model: Optional[str] = None
+    api_key: Optional[str] = None  # Inline key — takes precedence over env var; never logged
 
 
 class FieldValue(BaseModel):
@@ -105,6 +107,9 @@ class TaxReport(BaseModel):
     estimated_amount: Optional[float] = None
     outcome_explanation: str = ""
     validation_results: list[ValidationIssue] = []
+    treaty_exempt_amount: Optional[float] = None  # > 0 triggers Form 8833 advisory (Exp 2)
+    treaty_country: Optional[str] = None           # Country name for the 8833 advisory
+    needs_itin_guidance: bool = False               # True when F-1/J-1/OPT + no SSN detected
 
 
 class SessionState(BaseModel):

@@ -36,11 +36,13 @@ export function ContextStep({
   formType,
   onConfirm,
   onBack,
+  onContextSaved,
 }: {
   documentId: string;
   formType?: string;
   onConfirm: () => void;
   onBack: () => void;
+  onContextSaved?: (visaType: string) => void;
 }) {
   const [visaType, setVisaType] = useState("US_CITIZEN");
   const [entryDate, setEntryDate] = useState("");
@@ -52,6 +54,7 @@ export function ContextStep({
   const [stateCode, setStateCode] = useState("");
   const [claimsExempt, setClaimsExempt] = useState(false);
   const [necExpenses, setNecExpenses] = useState("");
+  const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,7 +80,9 @@ export function ContextStep({
         state_code: (wantsState && stateCode) ? stateCode : undefined,
         claims_exempt_individual: claimsExempt,
         nec_business_expenses: expenses,
+        country_of_origin: countryOfOrigin.trim().toUpperCase() || undefined,
       });
+      onContextSaved?.(visaType);
       onConfirm();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -132,6 +137,23 @@ export function ContextStep({
                 value={entryDate}
                 onChange={(e) => setEntryDate(e.target.value)}
                 style={inputStyle}
+              />
+            </div>
+          )}
+          {showStudentQuestions && (
+            <div>
+              <label htmlFor="country-of-origin-input" className="text-xs text-slate-500 mb-1.5 block">
+                Country of origin <span className="text-slate-700">(ISO 2-letter code, e.g. CN, IN, KR)</span>
+                <span className="text-slate-600 ml-1">— used for tax treaty lookup</span>
+              </label>
+              <input
+                id="country-of-origin-input"
+                type="text"
+                maxLength={2}
+                placeholder="e.g. CN"
+                value={countryOfOrigin}
+                onChange={(e) => setCountryOfOrigin(e.target.value.toUpperCase())}
+                style={{ ...inputStyle, maxWidth: "8rem", textTransform: "uppercase" }}
               />
             </div>
           )}

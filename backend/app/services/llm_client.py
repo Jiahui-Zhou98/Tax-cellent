@@ -99,9 +99,11 @@ async def chat(
     temperature: float = 0.2,
     provider: str = LLMProvider.OLLAMA,
     json_mode: bool = False,
+    api_key: str | None = None,  # Inline key — takes precedence over env var; never logged
 ) -> str:
     """
-    Send a chat request to Ollama.
+    Send a chat request to the specified provider.
+    api_key: if provided, overrides the env-configured key for this request.
     keep_alive=0 tells Ollama to unload the model from memory immediately
     after the response, so the next model loads into a clean slot.
     """
@@ -123,7 +125,14 @@ async def chat(
             resp.raise_for_status()
             return resp.json()["message"]["content"]
 
-    ensure_provider_configured(provider)
+    # Inline api_key takes precedence over environment variable
+    effective_openai_key = api_key or settings.OPENAI_API_KEY
+    effective_anthropic_key = api_key or settings.ANTHROPIC_API_KEY
+    effective_gemini_key = api_key or settings.GEMINI_API_KEY
+
+    # Only check env config when no inline key is provided
+    if not api_key:
+        ensure_provider_configured(provider)
 
     if provider == LLMProvider.OPENAI.value:
         payload: dict = {
@@ -136,7 +145,7 @@ async def chat(
             resp = await client.post(
                 "https://api.openai.com/v1/responses",
                 headers={
-                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "Authorization": f"Bearer {effective_openai_key}",
                     "Content-Type": "application/json",
                 },
                 json=payload,
@@ -149,7 +158,7 @@ async def chat(
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
-                    "x-api-key": settings.ANTHROPIC_API_KEY or "",
+                    "x-api-key": effective_anthropic_key or "",
                     "anthropic-version": "2023-06-01",
                     "content-type": "application/json",
                 },
@@ -170,7 +179,7 @@ async def chat(
         async with httpx.AsyncClient(timeout=300.0) as client:
             resp = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-                params={"key": settings.GEMINI_API_KEY},
+                params={"key": effective_gemini_key},
                 headers={"Content-Type": "application/json"},
                 json={
                     "contents": [{"parts": [{"text": prompt}]}],
@@ -188,9 +197,10 @@ async def chat_json(
     messages: list[dict],
     temperature: float = 0.2,
     provider: str = LLMProvider.OLLAMA,
+    api_key: str | None = None,  # Inline key — takes precedence over env var; never logged
 ) -> dict:
     """Send a chat request and parse the response as JSON."""
-    text = (await chat(model, messages, temperature, provider=provider, json_mode=True)).strip()
+    text = (await chat(model, messages, temperature, provider=provider, json_mode=True, api_key=api_key)).strip()
     if text.startswith("```"):
         lines = text.split("\n")
         text = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])

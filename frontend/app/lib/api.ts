@@ -36,11 +36,29 @@ export interface UserContext {
   state_code?: string;
   claims_exempt_individual: boolean;
   nec_business_expenses?: number;
+  country_of_origin?: string;
 }
 
 export interface AnalysisPreferences {
   provider: "ollama" | "openai" | "anthropic" | "gemini";
   model?: string;
+  api_key?: string;  // Session-only; never persisted
+}
+
+export interface ProviderStatus {
+  configured: boolean;
+  running?: boolean;  // Ollama only
+}
+
+export interface HealthStatus {
+  status: string;
+  ollama: string;
+  providers: {
+    ollama: ProviderStatus;
+    openai: ProviderStatus;
+    anthropic: ProviderStatus;
+    gemini: ProviderStatus;
+  };
 }
 
 export interface CalculationStep {
@@ -61,6 +79,9 @@ export interface TaxReport {
   estimated_amount: number | null;
   outcome_explanation: string;
   validation_results: ValidationIssue[];
+  treaty_exempt_amount?: number | null;
+  treaty_country?: string | null;
+  needs_itin_guidance?: boolean;
 }
 
 export interface SessionState {
@@ -137,7 +158,7 @@ export async function getSessionStatus(document_id: string): Promise<string> {
   }
 }
 
-export async function checkHealth(): Promise<{ status: string; ollama: string }> {
+export async function checkHealth(): Promise<HealthStatus> {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();
 }

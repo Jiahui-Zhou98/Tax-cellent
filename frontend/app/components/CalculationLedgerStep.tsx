@@ -109,6 +109,84 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
         </p>
       </div>
 
+      {/* ITIN Guidance Card — F-1/J-1/OPT without SSN */}
+      {report.needs_itin_guidance && (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ border: "1px solid rgba(167,139,250,0.35)" }}
+        >
+          <div
+            className="px-5 py-3 flex items-center gap-2"
+            style={{ background: "rgba(167,139,250,0.08)", borderBottom: "1px solid rgba(167,139,250,0.15)" }}
+          >
+            <span className="text-violet-400 text-sm">🪪</span>
+            <div>
+              <p className="text-sm font-semibold text-violet-300">ITIN Required — Form W-7</p>
+              <p className="text-xs text-slate-500">Individual Taxpayer Identification Number · IRS Publication 1915</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-3" style={{ background: "rgba(167,139,250,0.02)" }}>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              No SSN was detected on your document. F-1, J-1, and OPT visa holders who are not eligible for a Social Security Number must obtain an <strong className="text-violet-300">Individual Taxpayer Identification Number (ITIN)</strong> before filing Form 1040-NR.
+            </p>
+            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.15)" }}>
+              <p className="text-xs font-mono tracking-widest uppercase text-violet-400">Next Steps</p>
+              <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside leading-relaxed">
+                <li>Complete <strong className="text-slate-300">Form W-7</strong> (Application for IRS Individual Taxpayer Identification Number).</li>
+                <li>Attach original identification documents or certified copies (passport, visa, etc.).</li>
+                <li>Submit Form W-7 with your tax return or by mail to the IRS ITIN Operations office.</li>
+              </ol>
+            </div>
+            <p className="text-xs text-slate-600">
+              Reference: IRC §6109 · IRS Publication 1915 · Form W-7 instructions at irs.gov.
+              Processing typically takes 7–11 weeks.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Form 8833 Treaty Disclosure Advisory */}
+      {report.treaty_exempt_amount != null && report.treaty_exempt_amount > 0 && (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ border: "1px solid rgba(52,211,153,0.35)" }}
+        >
+          <div
+            className="px-5 py-3 flex items-center gap-2"
+            style={{ background: "rgba(52,211,153,0.07)", borderBottom: "1px solid rgba(52,211,153,0.12)" }}
+          >
+            <span className="text-emerald-400 text-sm">📄</span>
+            <div>
+              <p className="text-sm font-semibold text-emerald-300">Form 8833 Required — Treaty Disclosure</p>
+              <p className="text-xs text-slate-500">Treaty-Based Return Position Disclosure · IRC §6114</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-3" style={{ background: "rgba(52,211,153,0.02)" }}>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              A treaty exemption of{" "}
+              <strong className="text-emerald-300">
+                ${report.treaty_exempt_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </strong>
+              {report.treaty_country ? ` under the US–${report.treaty_country} income tax treaty` : " under a US income tax treaty"}{" "}
+              was applied to your return. Under <strong className="text-slate-200">IRC §6114</strong>, you are required to disclose this treaty-based position by attaching <strong className="text-emerald-300">Form 8833</strong> to your tax return.
+            </p>
+            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(52,211,153,0.05)", border: "1px solid rgba(52,211,153,0.15)" }}>
+              <p className="text-xs font-mono tracking-widest uppercase text-emerald-400">Next Steps</p>
+              <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside leading-relaxed">
+                <li>Download <strong className="text-slate-300">Form 8833</strong> from irs.gov.</li>
+                <li>Complete Part I — identify the treaty country and the treaty article relied upon.</li>
+                <li>In Part II, describe the treaty-based position and the amount of income excluded.</li>
+                <li>Attach the completed Form 8833 to your Form 1040-NR when filing.</li>
+              </ol>
+            </div>
+            <p className="text-xs text-slate-600">
+              Failure to disclose can result in a penalty of $1,000 per return (IRC §6712).
+              See IRS Publication 901 for treaty details.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Form 843 Pre-fill Card — W-2 only */}
       {w2FlagSteps.length > 0 && (
         <div
