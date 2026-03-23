@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "/tmp/taxdebate_uploads"
     SESSION_DIR: str = "/tmp/taxdebate_sessions"
     MAX_FILE_SIZE_MB: int = 20
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     class Config:
         env_file = ".env"

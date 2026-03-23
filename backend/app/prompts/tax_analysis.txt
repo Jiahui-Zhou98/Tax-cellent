@@ -37,3 +37,10 @@ Output format — a JSON object mapping step_number (as string) to explanation:
 
 IMPORTANT: Return ONLY the JSON object. No markdown fences. No commentary outside the JSON.
 If a step has is_flag=true, explain what the flag means and what the user should do — but still no numbers.
+
+The steps may come from different form types: W-2, 1099-NEC (self-employment), or 1099-INT (interest income).
+For 1099-NEC steps, explain self-employment tax concepts simply. For 1099-INT, explain interest income taxation.
+Example 1099-NEC explanations:
+  SE tax step: "Self-employment tax covers both the employee and employer portions of Social Security and Medicare — since you work for yourself, you pay both halves."
+  SE deductible half: "The IRS lets you deduct half of your self-employment tax when calculating taxable income, which partially offsets the higher SE tax rate."
+  NRA SE advisory flag: "Whether you owe self-employment tax as a nonresident alien depends on whether your country has a tax treaty with the US that covers self-employment income."

@@ -5,6 +5,17 @@ import { saveContext } from "../lib/api";
 import { inputStyle, glowBtn } from "../styles";
 import { SectionCard } from "./SectionCard";
 
+const STATE_OPTIONS = [
+  { value: "",      label: "Select a state…" },
+  { value: "CA",    label: "California" },
+  { value: "NY",    label: "New York" },
+  { value: "TX",    label: "Texas (no state income tax)" },
+  { value: "WA",    label: "Washington (no state income tax)" },
+  { value: "IL",    label: "Illinois" },
+  { value: "MA",    label: "Massachusetts" },
+  { value: "OTHER", label: "Other (estimate unavailable)" },
+];
+
 const STATUS_OPTIONS = [
   { value: "US_CITIZEN", label: "US Citizen / Domestic Filer" },
   { value: "GREEN_CARD", label: "Green Card Holder / Permanent Resident" },
@@ -22,10 +33,12 @@ const STUDENT_STATUS_VALUES = new Set(["F-1", "J-1", "OPT", "CPT"]);
 
 export function ContextStep({
   documentId,
+  formType,
   onConfirm,
   onBack,
 }: {
   documentId: string;
+  formType?: string;
   onConfirm: () => void;
   onBack: () => void;
 }) {
@@ -36,9 +49,13 @@ export function ContextStep({
   const [days2, setDays2] = useState("");
   const [has1042s, setHas1042s] = useState(false);
   const [wantsState, setWantsState] = useState(false);
+  const [stateCode, setStateCode] = useState("");
   const [claimsExempt, setClaimsExempt] = useState(false);
+  const [necExpenses, setNecExpenses] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isNEC = formType?.includes("NEC") || formType?.includes("1099-NEC");
 
   const isDomesticStatus = DOMESTIC_STATUS_VALUES.has(visaType);
   const showResidencyTravelQuestions = !isDomesticStatus;
@@ -48,6 +65,7 @@ export function ContextStep({
     setLoading(true);
     setError(null);
     try {
+      const expenses = necExpenses ? parseFloat(necExpenses.replace(/,/g, "")) : undefined;
       await saveContext(documentId, {
         visa_type: visaType,
         first_us_entry_date: entryDate || undefined,
@@ -56,7 +74,9 @@ export function ContextStep({
         second_prior_year_days_in_us: days2 ? parseInt(days2) : undefined,
         has_1042s: has1042s,
         wants_state_estimate: wantsState,
+        state_code: (wantsState && stateCode) ? stateCode : undefined,
         claims_exempt_individual: claimsExempt,
+        nec_business_expenses: expenses,
       });
       onConfirm();
     } catch (e: unknown) {
@@ -68,26 +88,21 @@ export function ContextStep({
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-white tracking-tight">Taxpayer Context</h2>
-          <p className="text-slate-500 text-sm mt-1">
-            Used to tailor residency checks and special tax rules when relevant. Domestic and international filers are both supported.
-          </p>
-        </div>
-        <button
-          onClick={onBack}
-          className="text-sm text-slate-600 hover:text-slate-300 transition-colors mt-1 whitespace-nowrap"
-        >
-          ← Re-upload
-        </button>
+      <div>
+        <h2 className="text-2xl font-semibold text-white tracking-tight">Taxpayer Context</h2>
+        <p className="text-slate-500 text-sm mt-1">
+          Used to tailor residency checks and special tax rules when relevant. Domestic and international filers are both supported.
+        </p>
       </div>
 
       <SectionCard title="Residency / Status" accent="#22d3ee">
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-slate-500 mb-1.5">Tax residency or visa status during the tax year</p>
+            <label htmlFor="visa-type-select" className="text-xs text-slate-500 mb-1.5 block">
+              Tax residency or visa status during the tax year
+            </label>
             <select
+              id="visa-type-select"
               value={visaType}
               onChange={(e) => setVisaType(e.target.value)}
               style={inputStyle}
@@ -106,11 +121,12 @@ export function ContextStep({
           </p>
           {showResidencyTravelQuestions && (
             <div>
-              <p className="text-xs text-slate-500 mb-1.5">
+              <label htmlFor="entry-date-input" className="text-xs text-slate-500 mb-1.5 block">
                 First year you entered the US in the status above
                 <span className="text-slate-700 ml-1">(if relevant, e.g. 2021)</span>
-              </p>
+              </label>
               <input
+                id="entry-date-input"
                 type="text"
                 placeholder="e.g. 2021"
                 value={entryDate}
@@ -129,13 +145,14 @@ export function ContextStep({
           </p>
           <div className="space-y-3">
             {[
-              { label: "Current tax year", value: days0, set: setDays0 },
-              { label: "Prior year", value: days1, set: setDays1 },
-              { label: "Second prior year", value: days2, set: setDays2 },
-            ].map(({ label, value, set }) => (
+              { label: "Current tax year", value: days0, set: setDays0, id: "days-current" },
+              { label: "Prior year", value: days1, set: setDays1, id: "days-prior" },
+              { label: "Second prior year", value: days2, set: setDays2, id: "days-second-prior" },
+            ].map(({ label, value, set, id }) => (
               <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-slate-500 w-36 flex-shrink-0">{label}</span>
+                <label htmlFor={id} className="text-xs text-slate-500 w-36 flex-shrink-0">{label}</label>
                 <input
+                  id={id}
                   type="number"
                   min={0}
                   max={366}
@@ -161,25 +178,81 @@ export function ContextStep({
               ? [{ label: "I believe I qualify as an exempt individual (F/J/M/Q within first 5 years)", value: claimsExempt, set: setClaimsExempt }]
               : []),
           ].map(({ label, value, set }) => (
-            <label key={label} className="flex items-start gap-3 cursor-pointer group">
+            <div
+              key={label}
+              role="checkbox"
+              aria-checked={value}
+              tabIndex={0}
+              onClick={() => set(!value)}
+              onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); set(!value); } }}
+              className="flex items-start gap-3 cursor-pointer group outline-none focus-visible:ring-1 focus-visible:ring-cyan-500 rounded"
+            >
               <div
                 className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                aria-hidden="true"
                 style={
                   value
                     ? { background: "rgba(34,211,238,0.2)", border: "1.5px solid rgba(34,211,238,0.7)" }
                     : { background: "transparent", border: "1.5px solid rgba(71,85,105,0.5)" }
                 }
-                onClick={() => set(!value)}
               >
                 {value && <span className="text-xs" style={{ color: "#22d3ee" }}>✓</span>}
               </div>
               <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors leading-snug">
                 {label}
               </span>
-            </label>
+            </div>
           ))}
         </div>
       </SectionCard>
+
+      {wantsState && (
+        <SectionCard title="State for Tax Estimate" accent="#60a5fa">
+          <div>
+            <label htmlFor="state-select" className="text-xs text-slate-500 mb-1.5 block">
+              Which state do you file in?
+              <span className="text-slate-700 ml-1">(used only for the optional state estimate)</span>
+            </label>
+            <select
+              id="state-select"
+              value={stateCode}
+              onChange={(e) => setStateCode(e.target.value)}
+              style={inputStyle}
+            >
+              {STATE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value} style={{ background: "#0d1424" }}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </SectionCard>
+      )}
+
+      {isNEC && (
+        <SectionCard title="Self-Employment Expenses (1099-NEC)" accent="#fbbf24">
+          <p className="text-xs text-slate-500 mb-3">
+            If you had deductible business expenses (home office, equipment, software, etc.), enter the total here.
+            This reduces your net self-employment income and lowers your SE tax. Leave blank if none.
+          </p>
+          <div>
+            <label htmlFor="nec-expenses-input" className="text-xs text-slate-500 mb-1.5 block">
+              Estimated business expenses (optional)
+            </label>
+            <input
+              id="nec-expenses-input"
+              type="number"
+              min={0}
+              max={9999999}
+              step={1}
+              placeholder="e.g. 2500"
+              value={necExpenses}
+              onChange={(e) => setNecExpenses(e.target.value)}
+              style={{ ...inputStyle, maxWidth: "14rem" }}
+            />
+          </div>
+        </SectionCard>
+      )}
 
       {error && (
         <div

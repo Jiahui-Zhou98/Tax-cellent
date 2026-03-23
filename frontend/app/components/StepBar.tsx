@@ -4,13 +4,21 @@ const STEPS = ["Upload", "Context", "Review", "Validate", "Settings", "Analysis"
 
 export function StepBar({ current }: { current: number }) {
   return (
-    <div className="flex items-start mb-12">
+    <nav aria-label="Progress steps" className="flex items-start mb-12">
       {STEPS.map((label, i) => (
         <div key={i} className="flex items-start flex-1 last:flex-none">
           <div className="flex flex-col items-center gap-2">
             {/* Circle */}
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-mono font-bold border transition-all duration-300"
+              aria-label={
+                i < current
+                  ? `Step ${i + 1}: ${label}, completed`
+                  : i === current
+                  ? `Step ${i + 1}: ${label}, current`
+                  : `Step ${i + 1}: ${label}`
+              }
+              aria-current={i === current ? "step" : undefined}
               style={
                 i === current
                   ? {
@@ -26,9 +34,9 @@ export function StepBar({ current }: { current: number }) {
                       color: "#22d3ee",
                     }
                   : {
-                      background: "rgba(15,23,42,0.6)",
-                      borderColor: "rgba(100,116,139,0.3)",
-                      color: "#475569",
+                      background: "rgba(6,11,20,0.3)",
+                      borderColor: "rgba(30,41,59,0.5)",
+                      color: "#1e3a5f",
                     }
               }
             >
@@ -36,14 +44,14 @@ export function StepBar({ current }: { current: number }) {
             </div>
             {/* Label */}
             <span
-              className="text-xs font-medium tracking-wide whitespace-nowrap"
+              className="hidden md:block text-xs font-medium tracking-wide whitespace-nowrap"
               style={{
                 color:
                   i === current
                     ? "#22d3ee"
                     : i < current
                     ? "#94a3b8"
-                    : "#334155",
+                    : "#1e293b",
               }}
             >
               {label}
@@ -64,6 +72,6 @@ export function StepBar({ current }: { current: number }) {
           )}
         </div>
       ))}
-    </div>
+    </nav>
   );
 }

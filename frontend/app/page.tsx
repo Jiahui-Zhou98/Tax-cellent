@@ -34,6 +34,7 @@ export default function Home() {
       {step === 1 && ocr && (
         <ContextStep
           documentId={ocr.document_id}
+          formType={ocr.field_candidates["form_type"]?.value ?? undefined}
           onConfirm={() => setStep(2)}
           onBack={() => { setOcr(null); setStep(0); }}
         />
@@ -67,10 +68,11 @@ export default function Home() {
           documentId={ocr.document_id}
           preferences={analysisPreferences}
           onComplete={(r) => { setReport(r); setStep(6); }}
+          onBack={() => setStep(4)}
         />
       )}
 
-      {step === 6 && report && <CalculationLedgerStep report={report} />}
+      {step === 6 && report && <CalculationLedgerStep report={report} ocr={ocr ?? undefined} />}
     </div>
   );
 }

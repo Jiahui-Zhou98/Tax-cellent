@@ -33,7 +33,9 @@ export interface UserContext {
   second_prior_year_days_in_us?: number;
   has_1042s: boolean;
   wants_state_estimate: boolean;
+  state_code?: string;
   claims_exempt_individual: boolean;
+  nec_business_expenses?: number;
 }
 
 export interface AnalysisPreferences {
@@ -49,6 +51,7 @@ export interface CalculationStep {
   output_value: string;
   explanation: string;
   is_flag: boolean;
+  source_form?: string;
 }
 
 export interface TaxReport {

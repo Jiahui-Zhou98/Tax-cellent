@@ -10,6 +10,7 @@ structured JSON is unavailable (scanned images, OCR-only PDFs).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -60,7 +61,7 @@ async def extract_fields_structured(parsed_json: dict) -> dict[str, FieldValue]:
     """
     from app.services.candidate_extractor import extract_candidates
 
-    candidate_map = extract_candidates(parsed_json)
+    candidate_map = await asyncio.to_thread(extract_candidates, parsed_json)
     if not candidate_map:
         raise ValueError("candidate_extractor returned no candidates")
 

@@ -11,7 +11,9 @@ class UserContext(BaseModel):
     second_prior_year_days_in_us: Optional[int] = None
     has_1042s: bool = False
     wants_state_estimate: bool = False
+    state_code: Optional[str] = None  # 2-letter state code: CA, NY, TX, WA, IL, MA (or None)
     claims_exempt_individual: bool = False
+    nec_business_expenses: Optional[float] = None  # Schedule C deductible expenses for 1099-NEC filers
 
 
 class FormType(str, Enum):
@@ -78,6 +80,7 @@ class CalculationStep(BaseModel):
     output_value: str     # e.g. "$4,328 federal tax"
     explanation: str = "" # plain-English, filled by AI after engine runs
     is_flag: bool = False # True for FICA exemption flags and other alerts
+    source_form: str = "" # "W-2" | "1099-NEC" | "1099-INT" — used by frontend for per-form card routing
 
 
 class TaxReport(BaseModel):

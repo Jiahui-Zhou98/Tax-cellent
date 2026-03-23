@@ -79,7 +79,7 @@ export function FieldRow({
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500" id={`label-${fieldKey}`}>
               {FIELD_LABELS[fieldKey] ?? fieldKey}
             </span>
             {field.confidence > 0 ? (
@@ -87,20 +87,32 @@ export function FieldRow({
                 <span
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                   style={{ background: confColor(field.confidence) }}
+                  aria-hidden="true"
                 />
-                <span className="text-xs font-mono" style={{ color: confColor(field.confidence) }}>
+                <span
+                  className="text-xs font-mono"
+                  style={{ color: confColor(field.confidence) }}
+                  aria-label={
+                    field.confidence >= 0.8
+                      ? `High confidence (${Math.round(field.confidence * 100)}%)`
+                      : field.confidence >= 0.5
+                      ? `Medium confidence (${Math.round(field.confidence * 100)}%)`
+                      : `Low confidence (${Math.round(field.confidence * 100)}%)`
+                  }
+                >
                   {Math.round(field.confidence * 100)}%
                 </span>
               </>
             ) : (
               <span className="text-xs font-mono text-slate-700">not detected</span>
             )}
-            <span className="ml-auto text-xs font-mono text-slate-700">
+            <span className="ml-auto text-xs font-mono text-slate-700" aria-hidden="true">
               {field.source !== "missing" ? field.source : ""}
             </span>
           </div>
           <input
             type="text"
+            aria-labelledby={`label-${fieldKey}`}
             value={field.value}
             onChange={(e) => onChange(fieldKey, e.target.value)}
             disabled={isUnresolved}
@@ -116,6 +128,8 @@ export function FieldRow({
         </div>
         <button
           onClick={() => onToggle(fieldKey)}
+          aria-label={isUnresolved ? `Mark ${FIELD_LABELS[fieldKey] ?? fieldKey} as resolved` : `Flag ${FIELD_LABELS[fieldKey] ?? fieldKey} as unresolved`}
+          aria-pressed={isUnresolved}
           className="text-xs px-2 py-0.5 rounded border transition-all flex-shrink-0 font-mono"
           style={
             isUnresolved

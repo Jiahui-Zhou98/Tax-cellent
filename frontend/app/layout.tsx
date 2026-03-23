@@ -45,8 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
               style={{
-                borderColor: "rgba(34,197,94,0.25)",
-                backgroundColor: "rgba(34,197,94,0.06)",
+                borderColor: "rgba(16,185,129,0.12)",
+                backgroundColor: "rgba(16,185,129,0.05)",
               }}
             >
               <span

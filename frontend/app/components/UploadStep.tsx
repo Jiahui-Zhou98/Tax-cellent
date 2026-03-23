@@ -1,19 +1,33 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { uploadDocument, type OCROutput } from "../lib/api";
 import { card } from "../styles";
 
+const UPLOAD_HINTS = [
+  "Extracting text from document…",
+  "Running OCR pipeline…",
+  "Identifying tax fields…",
+];
+
 export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hintIndex, setHintIndex] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+    const cycle = setInterval(() => setHintIndex((i) => (i + 1) % UPLOAD_HINTS.length), 2500);
+    return () => clearInterval(cycle);
+  }, [loading]);
 
   const onDrop = useCallback(
     async (files: File[]) => {
       if (!files[0]) return;
       setLoading(true);
       setError(null);
+      setHintIndex(0);
       try {
         const ocr = await uploadDocument(files[0]);
         onUploaded(ocr);
@@ -42,9 +56,6 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
         <h2 className="text-2xl font-semibold text-white tracking-tight">
           Upload Tax Document
         </h2>
-        <p className="text-slate-500 text-sm">
-          Supported forms: W-2 · 1099-NEC · 1099-INT
-        </p>
       </div>
 
       {/* Dropzone */}
@@ -61,7 +72,7 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
                 boxShadow: "0 0 32px rgba(34,211,238,0.12)",
               }
             : loading
-            ? { ...card, border: "1.5px dashed rgba(100,116,139,0.3)", opacity: 0.6 }
+            ? { ...card, border: "1.5px dashed rgba(100,116,139,0.3)", opacity: 0.7 }
             : {
                 ...card,
                 border: "1.5px dashed rgba(100,116,139,0.3)",
@@ -83,7 +94,7 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
           />
         ))}
 
-        <div className="py-16 px-8 text-center">
+        <div className="py-14 px-8 text-center">
           {loading ? (
             <div className="inline-block w-10 h-10 mb-5 rounded-full border-2 border-slate-700 border-t-cyan-400 animate-spin" />
           ) : (
@@ -113,13 +124,13 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
 
           <p className="text-slate-300 font-medium">
             {loading
-              ? "Extracting text from document…"
+              ? UPLOAD_HINTS[hintIndex]
               : isDragActive
               ? "Release to upload"
-              : "Drop a file here, or click to browse"}
+              : "Drop your tax document here, or click to browse"}
           </p>
           <p className="text-slate-600 text-xs mt-2 font-mono">
-            PDF · PNG · JPG · TIFF — MAX 20 MB
+            {loading ? "\u00a0" : "W-2 · 1099-NEC · 1099-INT · PDF · PNG · JPG"}
           </p>
         </div>
       </div>
@@ -137,21 +148,46 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
         </div>
       )}
 
-      {/* Privacy note */}
+      {/* Privacy feature card */}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+        className="rounded-xl p-5"
         style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.12)" }}
       >
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-xs flex-shrink-0"
-          style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)" }}
-        >
-          <span className="text-emerald-400">✦</span>
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)" }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#34d399"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-emerald-400">100% On-Device Processing</p>
+            <p className="text-xs text-slate-500">Your tax data never leaves your computer.</p>
+          </div>
         </div>
-        <p className="text-xs text-slate-500">
-          <span className="text-emerald-400 font-semibold">Privacy first.</span>{" "}
-          OCR and extraction always run locally. AI explanations use the provider you choose — local or cloud.
-        </p>
+        <div className="space-y-1.5 pl-12">
+          {[
+            "OCR and field extraction run locally",
+            "No document is uploaded to the cloud",
+            "AI explanations use the provider you choose",
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="text-emerald-500 flex-shrink-0">✓</span>
+              {item}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

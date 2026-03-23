@@ -30,10 +30,11 @@ export function SettingsStep({
       <SectionCard title="AI Explanation Provider" accent="#22d3ee">
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-slate-500 mb-1.5">
+            <label htmlFor="provider-select" className="text-xs text-slate-500 mb-1.5 block">
               Choose the model provider for the report explanations
-            </p>
+            </label>
             <select
+              id="provider-select"
               value={provider}
               onChange={(e) => setProvider(e.target.value as AnalysisPreferences["provider"])}
               style={inputStyle}
@@ -47,8 +48,9 @@ export function SettingsStep({
           </div>
           <p className="text-xs text-slate-600">{selectedProvider.hint}</p>
           <div>
-            <p className="text-xs text-slate-500 mb-1.5">Optional model override</p>
+            <label htmlFor="model-override-input" className="text-xs text-slate-500 mb-1.5 block">Optional model override</label>
             <input
+              id="model-override-input"
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}

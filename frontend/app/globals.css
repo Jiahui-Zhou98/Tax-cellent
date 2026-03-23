@@ -39,3 +39,33 @@ body {
 .animate-pulse-glow {
   animation: pulse-glow 1.8s ease-in-out infinite;
 }
+
+/* Form 843 PDF print isolation */
+@media print {
+  body * { visibility: hidden; }
+
+  #form-843-printable,
+  #form-843-printable * {
+    visibility: visible;
+    color: #1a1a1a !important;
+    background: transparent !important;
+    border-color: #bbb !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+  }
+
+  #form-843-printable {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5cm 2cm;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  /* Hide the download button itself when printing */
+  #form-843-print-btn { display: none !important; }
+}
