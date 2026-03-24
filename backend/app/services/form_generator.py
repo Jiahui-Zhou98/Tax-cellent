@@ -27,7 +27,13 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from app.constants.form_8843_fields import COORD_FALLBACK, EXPECTED_FIELDS, FIELD_MAP
+from app.constants.form_8843_fields import (
+    COORD_FALLBACK,
+    EXPECTED_FIELDS_BY_YEAR,
+    FIELD_MAPS,
+    FIELD_MAP,        # default (2025) — kept for backward compat
+    EXPECTED_FIELDS,  # default (2025) — kept for backward compat
+)
 from app.schemas.form_8843 import Form8843Data
 
 logger = logging.getLogger(__name__)
@@ -65,7 +71,8 @@ def _get_template(year: int):
 
     if has_acroform:
         actual = set(fields.keys())
-        missing = EXPECTED_FIELDS - actual
+        expected_for_year = EXPECTED_FIELDS_BY_YEAR.get(year, EXPECTED_FIELDS)
+        missing = expected_for_year - actual
         if missing:
             logger.warning(
                 "Form 8843 (%d): %d expected AcroForm fields are missing from PDF. "
@@ -80,11 +87,8 @@ def _get_template(year: int):
 
 
 def _build_field_values(data: Form8843Data) -> dict[str, str]:
-    """Map Form8843Data fields to the FIELD_MAP semantic keys."""
+    """Map Form8843Data fields to semantic keys used in FIELD_MAP_*."""
     full_name_sign = f"{data.first_name} {data.last_name}".strip()
-    city_state = (
-        f"{data.institution_city or ''}, {data.institution_state or ''}".strip(", ")
-    )
     tin_display = ""
     if data.tin_value:
         tin_display = data.tin_value
@@ -103,7 +107,8 @@ def _build_field_values(data: Form8843Data) -> dict[str, str]:
         "date_arrived":           data.first_us_entry_date or "",
         "days_us_current":        str(data.days_in_us_current_year) if data.days_in_us_current_year is not None else "",
         "institution_name":       data.institution_name or "",
-        "institution_city_state": city_state,
+        "institution_city":       data.institution_city or "",   # separate city field
+        "institution_state":      data.institution_state or "",  # separate state field
         "prior_exempt_years":     prior_years_str,
         "exchange_program":       data.exchange_program_name or "",
         "sponsor_name":           data.sponsor_name or "",
@@ -117,16 +122,22 @@ def _build_field_values(data: Form8843Data) -> dict[str, str]:
 # Primary path: pypdf AcroForm fill
 # ---------------------------------------------------------------------------
 
-def _fill_acroform(reader, field_values: dict[str, str]) -> bytes:
-    """Fill named AcroForm widgets and return flattened PDF bytes."""
+def _fill_acroform(reader, field_values: dict[str, str], year: int) -> bytes:
+    """Fill named AcroForm widgets and return flattened PDF bytes.
+
+    Uses the year-specific FIELD_MAP so short field names like ``f1_01[0]``
+    match annotation ``/T`` attributes correctly.
+    """
     import pypdf  # noqa: PLC0415
+
+    field_map = FIELD_MAPS.get(year, FIELD_MAP)
 
     writer = pypdf.PdfWriter()
     writer.clone_reader_document_root(reader)
 
-    # Build widget_name -> value dict using FIELD_MAP
+    # Build annotation-local-name -> value dict using year-specific FIELD_MAP
     pdf_fields: dict[str, str] = {}
-    for semantic_key, pdf_field_name in FIELD_MAP.items():
+    for semantic_key, pdf_field_name in field_map.items():
         if semantic_key in field_values and field_values[semantic_key]:
             pdf_fields[pdf_field_name] = field_values[semantic_key]
 
@@ -200,7 +211,7 @@ def generate_8843(data: Form8843Data, year: Optional[int] = None) -> bytes:
 
     if has_acroform:
         logger.debug("generate_8843: using AcroForm fill for year %d", target_year)
-        return _fill_acroform(reader, field_values)
+        return _fill_acroform(reader, field_values, target_year)
 
     # Fallback: read raw bytes from the template file for coordinate overlay
     logger.debug("generate_8843: using coordinate overlay for year %d", target_year)

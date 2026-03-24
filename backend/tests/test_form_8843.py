@@ -28,7 +28,13 @@ from unittest.mock import MagicMock, patch
 from app.schemas.document import ConfirmedFields, FieldValue, UserContext
 from app.schemas.form_8843 import Form8843Data
 from app.constants.tax_constants import NRA_VISA_TYPES
-from app.constants.form_8843_fields import EXPECTED_FIELDS, FIELD_MAP
+from app.constants.form_8843_fields import (
+    EXPECTED_FIELDS,
+    EXPECTED_FIELDS_2025,
+    FIELD_MAP,
+    FIELD_MAP_2025,
+    FIELD_MAPS,
+)
 from app.services.tax_engine import (
     _check_8843_eligibility,
     _assemble_form_8843_data,
@@ -297,12 +303,24 @@ def test_t13_nra_visa_types_includes_dependents():
 
 
 # ---------------------------------------------------------------------------
-# T14 — EXPECTED_FIELDS matches FIELD_MAP values (no drift)
+# T14 — EXPECTED_FIELDS_2025 encodes all FIELD_MAP_2025 short names (no drift)
+#
+# EXPECTED_FIELDS contains full XFA-qualified paths (for get_fields() validation).
+# FIELD_MAP values contain short annotation /T names (for update_page_form_field_values).
+# We verify that every short name in FIELD_MAP_2025 appears as a suffix in
+# EXPECTED_FIELDS_2025, confirming the two representations are in sync.
 # ---------------------------------------------------------------------------
 
 def test_t14_expected_fields_matches_field_map():
-    from_field_map = set(FIELD_MAP.values())
-    assert EXPECTED_FIELDS == from_field_map, (
-        "EXPECTED_FIELDS has drifted from FIELD_MAP values. "
-        "Symmetric diff: %s" % (EXPECTED_FIELDS ^ from_field_map)
-    )
+    short_names = set(FIELD_MAP_2025.values())
+    # Every short name must appear as the last component of a full qualified path
+    for short in short_names:
+        assert any(full.endswith("." + short) or full.endswith("[0]." + short) or full.endswith(short)
+                   for full in EXPECTED_FIELDS_2025), (
+            f"Short name {short!r} from FIELD_MAP_2025 has no matching entry in EXPECTED_FIELDS_2025"
+        )
+    # FIELD_MAP alias points to 2025
+    assert FIELD_MAP is FIELD_MAP_2025
+    # FIELD_MAPS dispatch table includes both years
+    assert 2025 in FIELD_MAPS
+    assert 2024 in FIELD_MAPS
