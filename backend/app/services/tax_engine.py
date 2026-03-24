@@ -15,8 +15,10 @@ Data flow:
     CalculationStep.explanation         ← AI plain-English, no new numbers
 """
 
-from typing import Optional
+from typing import Literal, Optional
 from app.schemas.document import CalculationStep, ConfirmedFields, UserContext
+from app.schemas.form_8843 import Form8843Data
+from app.constants.tax_constants import NRA_VISA_TYPES
 
 # ---------------------------------------------------------------------------
 # 2025 IRS constants
@@ -179,6 +181,104 @@ def _determine_residency(user_context: Optional[UserContext]) -> str:
         return "NRA"
     # d0 == 0: no day data at all → default RA (conservative)
     return "RA"
+
+
+# ---------------------------------------------------------------------------
+# Form 8843 helpers
+# ---------------------------------------------------------------------------
+
+def _check_8843_eligibility(
+    user_context: Optional[UserContext],
+) -> tuple[Literal["exempt", "resident_alien_warning"], int]:
+    """Check Form 8843 filing eligibility and count exempt years.
+
+    Calls _determine_residency() (the existing SPT implementation) to classify
+    the filer, then computes how many calendar years the individual has been
+    present as an exempt individual.  That count feeds Form 8843 Line 7.
+
+    Returns:
+        status:
+          "exempt"                 — still an NRA exempt individual; file 8843 normally
+          "resident_alien_warning" — SPT met or 5+ exempt years; may have become RA
+                                     (still file Form 8843 for the year, but verify status)
+        exempt_years_count:
+          Number of calendar years in the US as an exempt individual.
+          Capped at FICA_EXEMPT_MAX_YEARS (5) when status is "resident_alien_warning"
+          because the filer crossed the threshold during or before the tax year.
+    """
+    if not user_context:
+        return "exempt", 0
+
+    residency = _determine_residency(user_context)
+
+    entry_str = user_context.first_us_entry_date
+    if not entry_str:
+        if residency == "RA":
+            return "resident_alien_warning", 0
+        return "exempt", 0
+
+    try:
+        entry_year = int(str(entry_str)[:4])
+        years_elapsed = 2025 - entry_year  # calendar years since first entry
+    except (ValueError, TypeError):
+        if residency == "RA":
+            return "resident_alien_warning", 0
+        return "exempt", 0
+
+    if residency == "RA":
+        # SPT met, or 5+ years as exempt individual → cap at FICA_EXEMPT_MAX_YEARS
+        return "resident_alien_warning", min(years_elapsed, FICA_EXEMPT_MAX_YEARS)
+
+    return "exempt", years_elapsed
+
+
+def _assemble_form_8843_data(
+    user_context: UserContext,
+    has_income: bool = True,
+) -> Form8843Data:
+    """Assemble a Form8843Data from UserContext fields.
+
+    This is the FormDataAssembler: extracts all Form 8843-relevant fields from
+    the existing UserContext.  Called from compute_report_extras() for NRA visa
+    holders on the income path.
+
+    For the zero-income path, Form8843Data is constructed directly from the
+    POST /api/forms/8843/generate request body — this function is not used there.
+
+    tin_status defaults to "none" — callers on the income path may override
+    with the actual TIN type if it is present in ConfirmedFields.
+
+    exempt_prior_years is computed from first_us_entry_date: the list of
+    calendar years from entry_year up to (but not including) tax_year 2025.
+    This feeds Form 8843 Line 7 (count of previously claimed exempt years).
+    """
+    _, exempt_years_count = _check_8843_eligibility(user_context)
+
+    # Build list of prior years the individual was present as exempt individual.
+    # Example: entry 2022 → [2022, 2023, 2024] (3 prior years before 2025).
+    exempt_prior_years: list[int] = []
+    if user_context.first_us_entry_date:
+        try:
+            entry_year = int(str(user_context.first_us_entry_date)[:4])
+            # Years from entry up to (not including) current tax year 2025
+            prior_years = list(range(entry_year, 2025))
+            # Cap at how many were actually exempt (don't go past exempt_years_count)
+            exempt_prior_years = prior_years[:exempt_years_count]
+        except (ValueError, TypeError):
+            pass
+
+    return Form8843Data(
+        visa_type=user_context.visa_type or "",
+        first_us_entry_date=user_context.first_us_entry_date,
+        days_in_us_current_year=user_context.current_year_days_in_us,
+        institution_name=user_context.institution_name,
+        institution_city=user_context.institution_city,
+        institution_state=user_context.institution_state,
+        exempt_prior_years=exempt_prior_years,
+        has_income=has_income,
+        tax_year=2025,
+        tin_status="none",  # income-path callers may override from ConfirmedFields
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -985,8 +1085,8 @@ _ITIN_GUIDANCE_VISAS = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
 def compute_report_extras(
     confirmed: ConfirmedFields,
     user_context: Optional[UserContext],
-) -> tuple[Optional[float], Optional[str], bool]:
-    """Compute treaty_exempt_amount, treaty_country, and needs_itin_guidance.
+) -> tuple[Optional[float], Optional[str], bool, Optional[Form8843Data]]:
+    """Compute treaty_exempt_amount, treaty_country, needs_itin_guidance, and form_8843_data.
 
     Called by tax_advisor.run_tax_analysis() to populate TaxReport extras.
 
@@ -994,6 +1094,7 @@ def compute_report_extras(
         treaty_exempt_amount: USD amount exempt under treaty (0 if no treaty applies)
         treaty_country:       Display name of the treaty country (or None)
         needs_itin_guidance:  True when student visa + no SSN/ITIN detected
+        form_8843_data:       Populated for NRA_VISA_TYPES; triggers Form8843Card display
     """
     # --- Treaty exemption (Exp 2 / TODO-9) ---
     treaty_amount: Optional[float] = None
@@ -1043,4 +1144,11 @@ def compute_report_extras(
         has_ssn = bool(ssn_fv and ssn_fv.value and ssn_fv.value.strip())
         needs_itin = not has_ssn
 
-    return treaty_amount, treaty_country_name, needs_itin
+    # --- Form 8843 data assembly ---
+    # Populate for all NRA_VISA_TYPES on the income path.  The income path sets
+    # has_income=True; F-2/J-2 dependents are included (they also must file 8843).
+    form_8843_data: Optional[Form8843Data] = None
+    if user_context and (user_context.visa_type or "").strip() in NRA_VISA_TYPES:
+        form_8843_data = _assemble_form_8843_data(user_context, has_income=True)
+
+    return treaty_amount, treaty_country_name, needs_itin, form_8843_data

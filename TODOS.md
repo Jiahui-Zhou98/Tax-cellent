@@ -256,7 +256,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-14: Model List Single Source of Truth
+## ~~TODO-14: Model List Single Source of Truth~~ ✅ DONE 2026-03-23
 
 **What:** Move the per-provider model lists (currently hardcoded in both `SettingsStep.tsx` and `backend/app/api/review.py`) into a single backend constant (`backend/app/constants/models.py`) exposed via `GET /api/providers/models`. Frontend fetches on mount.
 
@@ -274,9 +274,11 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 **Depends on / blocked by:** Cloud API providers feature (TODO completes after that ships).
 
+**Completed:** `backend/app/constants/models.py` created as single source of truth. `review.py` now imports from constants and exposes `GET /api/providers/models`. `SettingsStep.tsx` fetches on mount with hardcoded fallback on network error. 12 tests in `test_provider_models.py` including an identity check (`REVIEW_PROVIDER_MODELS is PROVIDER_MODELS`) that will fail if divergence ever occurs.
+
 ---
 
-## TODO-15: API Key Session Persistence
+## ~~TODO-15: API Key Session Persistence~~ ✅ DONE 2026-03-23
 
 **What:** Add an opt-in "Remember for this session" checkbox next to the API key input in SettingsStep. If checked, store the api_key in `sessionStorage` (clears on tab close, not a full localStorage persist). Pre-populate the input field if a stored key exists for the selected provider.
 
@@ -293,3 +295,46 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 **Priority:** P3 — polish, not correctness.
 
 **Depends on / blocked by:** Cloud API providers feature must ship first (api_key field must exist).
+
+**Completed:** `SettingsStep.tsx` updated with opt-in "Remember for this session" checkbox. On provider change, reads from `sessionStorage[tax_api_key_{provider}]` and pre-populates the input + checkbox. On analyze click, saves or clears sessionStorage based on checkbox state. Note "(clears when tab closes)" shown in UI. Ollama (local provider) never saves a key.
+
+---
+
+## TODO-16: University Name Autocomplete
+
+**What:** Autocomplete for the institution name field in `ContextStep.tsx` and `ZeroIncomeStep.tsx`. Source: SEVIS-approved schools list or US Department of Education institution database. Currently both fields use plain text inputs.
+
+**Why:** Typos in the institution name on Form 8843 don't invalidate the form (IRS doesn't validate institution names mechanically), but autocomplete builds trust, speeds up the flow, and reduces errors on Line 5 of Form 8843. Also prevents the "MIT" vs "Massachusetts Institute of Technology" ambiguity in future data analytics.
+
+**Pros:** Delightful UX — students recognize their school instantly. Reduces typos on a mailed legal document. Differentiator vs plain-text competitors.
+
+**Cons:** Requires a school name database or API (SEVIS SEVP search or DOE IPEDS). Non-trivial backend work. School names change. Edge case: student's school isn't in the database.
+
+**Context:** Flagged by /plan-ceo-review (2026-03-23) during Form 8843 zero-income path review. ContextStep and ZeroIncomeStep ship with plain text inputs. This TODO is the follow-on to add autocomplete. The field name is `institution_name` in `UserContext` and `Form8843Data`.
+
+**Effort:** M (human: ~2-3 days / CC: ~1 hour)
+
+**Priority:** P3 — UX polish; form is valid without it.
+
+**Depends on / blocked by:** Form 8843 zero-income feature must ship first (creates the institution fields).
+
+---
+
+## TODO-17: Form 8843 IRS Instructions Cross-Check
+
+**What:** Cross-reference every `Form8843Data` field mapping against the IRS Form 8843 instructions and IRS Publication 519 Chapter 1 before any public launch. Verify line-by-line that each field maps to the correct IRS form line with the correct semantics.
+
+**Why:** The plan claims "legally correct Form 8843" but no compliance review step exists. pypdf fills whatever field names are provided — incorrect mapping produces a silently wrong mailable document. An F-1 student who files a Form 8843 with wrong field values faces potential IRS correspondence or compliance issues.
+
+**Pros:** Backs the "legally correct" claim. Covers: Line 7 (`exempt_years_count` → correct checkbox set), Line 3a (`days_in_us` → correct calendar-year count), Line 8 (`status_change_applied` default=False is safe assumption), Part II lines 9-12 teacher/researcher instructions. One-time research task.
+
+**Cons:** Requires reading IRS Form 8843 instructions carefully (~1 hour human / ~15 min CC). Risk of over-confidence — IRS instructions are authoritative but may require tax professional judgment for edge cases.
+
+**Context:** Flagged by /plan-eng-review (2026-03-24) outside voice. The AcroForm spike and `EXPECTED_FIELDS` validation protect against wrong field names, but not against filling the right fields with the wrong values. This TODO is the field-semantics check, not the field-names check.
+
+**Effort:** S (human: ~2 hours / CC: ~15 min)
+
+**Priority:** P2 — required before public launch; form generation is functional without it during testing.
+
+**Depends on / blocked by:** Form 8843 zero-income feature must ship first (so there's actual field mapping code to cross-check).
+

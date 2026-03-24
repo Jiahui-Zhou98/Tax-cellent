@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkHealth, type AnalysisPreferences, type HealthStatus } from "../lib/api";
+import { checkHealth, getProviderModels, type AnalysisPreferences, type HealthStatus } from "../lib/api";
 import { inputStyle, glowBtn } from "../styles";
 import { SectionCard } from "./SectionCard";
 
-// SYNC: model lists must match PROVIDER_MODELS in backend/app/api/review.py
-const PROVIDER_MODELS: Record<string, string[]> = {
+// Fallback model lists — used if the backend endpoint is unreachable.
+// The backend is the single source of truth (app/constants/models.py).
+// These fallbacks prevent a blank picker when the backend is temporarily down.
+const FALLBACK_PROVIDER_MODELS: Record<string, string[]> = {
   openai: ["gpt-4o", "gpt-4o-mini", "gpt-5.2"],
   anthropic: ["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5"],
   gemini: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
@@ -31,6 +33,8 @@ const PROVIDER_INFO: Record<string, { label: string; note: string }> = {
   },
 };
 
+const SESSION_KEY = (provider: string) => `tax_api_key_${provider}`;
+
 export function SettingsStep({
   onAnalyze,
   onBack,
@@ -41,14 +45,50 @@ export function SettingsStep({
   const [provider, setProvider] = useState<AnalysisPreferences["provider"]>("ollama");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [remember, setRemember] = useState(false);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [providerModels, setProviderModels] = useState<Record<string, string[]>>(FALLBACK_PROVIDER_MODELS);
 
+  // Fetch health status and model list on mount
   useEffect(() => {
     checkHealth().then(setHealth).catch(() => {});
+    getProviderModels().then((models) => {
+      if (models) setProviderModels(models);
+    });
   }, []);
 
+  // When provider changes: reset model, load remembered key if present
+  function handleProviderChange(next: AnalysisPreferences["provider"]) {
+    setProvider(next);
+    setModel("");
+    const stored = next !== "ollama"
+      ? (typeof sessionStorage !== "undefined" ? sessionStorage.getItem(SESSION_KEY(next)) : null)
+      : null;
+    setApiKey(stored ?? "");
+    setRemember(!!stored);
+  }
+
+  function handleAnalyze() {
+    if (provider !== "ollama") {
+      try {
+        if (remember && apiKey) {
+          sessionStorage.setItem(SESSION_KEY(provider), apiKey);
+        } else {
+          sessionStorage.removeItem(SESSION_KEY(provider));
+        }
+      } catch {
+        // sessionStorage unavailable (private browsing, storage quota) — proceed without saving
+      }
+    }
+    onAnalyze({
+      provider,
+      model: model || undefined,
+      api_key: apiKey || undefined,
+    });
+  }
+
   const isCloud = provider !== "ollama";
-  const modelList = PROVIDER_MODELS[provider] ?? [];
+  const modelList = providerModels[provider] ?? [];
   const providerStatus = health?.providers[provider];
   const isConfigured =
     provider === "ollama" ? providerStatus?.running : providerStatus?.configured;
@@ -73,11 +113,7 @@ export function SettingsStep({
             <select
               id="provider-select"
               value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value as AnalysisPreferences["provider"]);
-                setModel("");
-                setApiKey("");
-              }}
+              onChange={(e) => handleProviderChange(e.target.value as AnalysisPreferences["provider"])}
               style={inputStyle}
             >
               {(["ollama", "openai", "anthropic", "gemini"] as const).map((p) => {
@@ -118,10 +154,10 @@ export function SettingsStep({
 
           {/* API key input — cloud providers only */}
           {isCloud && (
-            <div>
+            <div className="space-y-2">
               <label htmlFor="api-key-input" className="text-xs text-slate-500 mb-1.5 block">
                 API Key{" "}
-                <span className="text-slate-700">(session-only, never stored)</span>
+                <span className="text-slate-700">(session-only, never stored server-side)</span>
               </label>
               <input
                 id="api-key-input"
@@ -137,10 +173,24 @@ export function SettingsStep({
                 autoComplete="off"
               />
               {!isConfigured && !apiKey && (
-                <p className="text-xs text-amber-500/80 mt-1">
+                <p className="text-xs text-amber-500/80">
                   No key found in backend — enter one above to continue.
                 </p>
               )}
+              {/* Session persistence opt-in */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="accent-cyan-500"
+                  aria-label="Remember API key for this browser session"
+                />
+                <span className="text-xs text-slate-500">
+                  Remember for this session{" "}
+                  <span className="text-slate-700">(clears when tab closes)</span>
+                </span>
+              </label>
             </div>
           )}
 
@@ -197,13 +247,7 @@ export function SettingsStep({
           ← Back
         </button>
         <button
-          onClick={() =>
-            onAnalyze({
-              provider,
-              model: model || undefined,
-              api_key: apiKey || undefined,
-            })
-          }
+          onClick={handleAnalyze}
           disabled={!canSubmit}
           className="flex-1 py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: "#2563eb", ...glowBtn() }}

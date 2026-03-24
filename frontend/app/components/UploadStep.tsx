@@ -11,7 +11,13 @@ const UPLOAD_HINTS = [
   "Identifying tax fields…",
 ];
 
-export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => void }) {
+export function UploadStep({
+  onUploaded,
+  onZeroIncome,
+}: {
+  onUploaded: (ocr: OCROutput) => void;
+  onZeroIncome?: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hintIndex, setHintIndex] = useState(0);
@@ -146,6 +152,23 @@ export function UploadStep({ onUploaded }: { onUploaded: (ocr: OCROutput) => voi
           <span className="font-mono text-red-500 mr-2">ERROR</span>
           {error}
         </div>
+      )}
+
+      {/* Zero-income path shortcut */}
+      {onZeroIncome && (
+        <button
+          onClick={onZeroIncome}
+          disabled={loading}
+          className="w-full py-3 rounded-xl text-sm font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          style={{
+            background: "rgba(34,211,238,0.05)",
+            border: "1px solid rgba(34,211,238,0.2)",
+            color: "#94a3b8",
+          }}
+        >
+          <span style={{ color: "#22d3ee" }}>⇒</span>
+          No income — just need Form 8843 →
+        </button>
       )}
 
       {/* Privacy feature card */}

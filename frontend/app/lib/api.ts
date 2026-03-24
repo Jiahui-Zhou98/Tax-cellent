@@ -37,6 +37,33 @@ export interface UserContext {
   claims_exempt_individual: boolean;
   nec_business_expenses?: number;
   country_of_origin?: string;
+  institution_name?: string;
+  institution_city?: string;
+  institution_state?: string;
+}
+
+export interface Form8843Data {
+  first_name: string;
+  last_name: string;
+  tin_status: "ssn" | "itin" | "applied_for" | "none";
+  tin_value?: string | null;
+  visa_type: string;
+  first_us_entry_date?: string | null;
+  days_in_us_current_year?: number | null;
+  role: "student" | "teacher_researcher";
+  institution_name?: string | null;
+  institution_city?: string | null;
+  institution_state?: string | null;
+  exempt_prior_years: number[];
+  status_change_applied: boolean;
+  exchange_program_name?: string | null;
+  sponsor_name?: string | null;
+  sponsor_address?: string | null;
+  years_claimed_exemption?: number | null;
+  claimed_in_prior_6_years?: boolean | null;
+  has_income: boolean;
+  tax_year: number;
+  catch_up_years: number[];
 }
 
 export interface AnalysisPreferences {
@@ -82,6 +109,7 @@ export interface TaxReport {
   treaty_exempt_amount?: number | null;
   treaty_country?: string | null;
   needs_itin_guidance?: boolean;
+  form_8843_data?: Form8843Data | null;
 }
 
 export interface SessionState {
@@ -161,4 +189,63 @@ export async function getSessionStatus(document_id: string): Promise<string> {
 export async function checkHealth(): Promise<HealthStatus> {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();
+}
+
+/**
+ * Generate a single filled IRS Form 8843 PDF.
+ * Returns a Blob ready for download.
+ */
+export async function generate8843(data: Form8843Data, year?: number): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/api/forms/8843/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data, year }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Form generation failed");
+  }
+  return res.blob();
+}
+
+/**
+ * Bundle one Form 8843 per year (catch-up filing).
+ * Returns a Blob containing a multi-page PDF with cover sheet.
+ */
+export async function bundleForms(
+  baseData: Form8843Data,
+  years: number[],
+  includecover?: boolean
+): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/api/forms/bundle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      base_data: baseData,
+      years,
+      data_per_year: [],
+      include_cover_sheet: includecover ?? true,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Bundle generation failed");
+  }
+  return res.blob();
+}
+
+/**
+ * Fetch per-provider model allow-lists from the backend.
+ * Single source of truth — both validation and the SettingsStep picker
+ * read from the same backend constant.
+ * Returns null on network error so callers can fall back gracefully.
+ */
+export async function getProviderModels(): Promise<Record<string, string[]> | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/providers/models`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }

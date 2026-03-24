@@ -2,6 +2,8 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from enum import Enum
 
+from app.schemas.form_8843 import Form8843Data  # noqa: F401 — used in TaxReport
+
 
 class UserContext(BaseModel):
     visa_type: str = "unknown"
@@ -15,6 +17,11 @@ class UserContext(BaseModel):
     claims_exempt_individual: bool = False
     nec_business_expenses: Optional[float] = None  # Schedule C deductible expenses for 1099-NEC filers
     country_of_origin: Optional[str] = None  # ISO 2-letter code, used for treaty lookup (Exp 2)
+    # Academic institution — collected in ContextStep (for NRA visa types) and
+    # ZeroIncomeStep; pre-populated in ZeroIncomeStep from page.tsx context state.
+    institution_name: Optional[str] = None   # Form 8843 Part I Line 4a
+    institution_city: Optional[str] = None   # Form 8843 Part I Line 4b
+    institution_state: Optional[str] = None  # Form 8843 Part I Line 4c (2-letter)
 
 
 class FormType(str, Enum):
@@ -110,6 +117,7 @@ class TaxReport(BaseModel):
     treaty_exempt_amount: Optional[float] = None  # > 0 triggers Form 8833 advisory (Exp 2)
     treaty_country: Optional[str] = None           # Country name for the 8833 advisory
     needs_itin_guidance: bool = False               # True when F-1/J-1/OPT + no SSN detected
+    form_8843_data: Optional[Form8843Data] = None   # populated for NRA visa types; triggers Form8843Card
 
 
 class SessionState(BaseModel):

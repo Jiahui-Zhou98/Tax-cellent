@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveContext } from "../lib/api";
+import { NRA_VISA_TYPES } from "../lib/constants";
 import { inputStyle, glowBtn } from "../styles";
 import { SectionCard } from "./SectionCard";
 
@@ -42,7 +43,13 @@ export function ContextStep({
   formType?: string;
   onConfirm: () => void;
   onBack: () => void;
-  onContextSaved?: (visaType: string) => void;
+  onContextSaved?: (ctx: {
+    visaType: string;
+    entryYear?: string;
+    institutionName?: string;
+    institutionCity?: string;
+    institutionState?: string;
+  }) => void;
 }) {
   const [visaType, setVisaType] = useState("US_CITIZEN");
   const [entryDate, setEntryDate] = useState("");
@@ -55,10 +62,14 @@ export function ContextStep({
   const [claimsExempt, setClaimsExempt] = useState(false);
   const [necExpenses, setNecExpenses] = useState("");
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
+  const [instName, setInstName] = useState("");
+  const [instCity, setInstCity] = useState("");
+  const [instState, setInstState] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isNEC = formType?.includes("NEC") || formType?.includes("1099-NEC");
+  const showInstitutionFields = NRA_VISA_TYPES.includes(visaType);
 
   const isDomesticStatus = DOMESTIC_STATUS_VALUES.has(visaType);
   const showResidencyTravelQuestions = !isDomesticStatus;
@@ -81,8 +92,17 @@ export function ContextStep({
         claims_exempt_individual: claimsExempt,
         nec_business_expenses: expenses,
         country_of_origin: countryOfOrigin.trim().toUpperCase() || undefined,
+        institution_name: instName.trim() || undefined,
+        institution_city: instCity.trim() || undefined,
+        institution_state: instState.trim().toUpperCase() || undefined,
       });
-      onContextSaved?.(visaType);
+      onContextSaved?.({
+        visaType,
+        entryYear: entryDate || undefined,
+        institutionName: instName.trim() || undefined,
+        institutionCity: instCity.trim() || undefined,
+        institutionState: instState.trim().toUpperCase() || undefined,
+      });
       onConfirm();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -247,6 +267,59 @@ export function ContextStep({
                 </option>
               ))}
             </select>
+          </div>
+        </SectionCard>
+      )}
+
+      {showInstitutionFields && (
+        <SectionCard title="Academic Institution (Form 8843)" accent="#818cf8">
+          <p className="text-xs text-slate-600 mb-3">
+            Required for Form 8843 (filed by all {visaType} visa holders, even with income).
+            Leave blank if unknown — you can fill it in the Form 8843 step.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="ctx-inst-name" className="text-xs text-slate-500 mb-1.5 block">
+                School / university name <span className="text-slate-700">(Line 4a)</span>
+              </label>
+              <input
+                id="ctx-inst-name"
+                type="text"
+                placeholder="e.g. University of Michigan"
+                value={instName}
+                onChange={(e) => setInstName(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="ctx-inst-city" className="text-xs text-slate-500 mb-1.5 block">
+                  City <span className="text-slate-700">(4b)</span>
+                </label>
+                <input
+                  id="ctx-inst-city"
+                  type="text"
+                  placeholder="Ann Arbor"
+                  value={instCity}
+                  onChange={(e) => setInstCity(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label htmlFor="ctx-inst-state" className="text-xs text-slate-500 mb-1.5 block">
+                  State <span className="text-slate-700">(4c, 2-letter)</span>
+                </label>
+                <input
+                  id="ctx-inst-state"
+                  type="text"
+                  maxLength={2}
+                  placeholder="MI"
+                  value={instState}
+                  onChange={(e) => setInstState(e.target.value.toUpperCase())}
+                  style={{ ...inputStyle, maxWidth: "6rem", textTransform: "uppercase" }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
       )}

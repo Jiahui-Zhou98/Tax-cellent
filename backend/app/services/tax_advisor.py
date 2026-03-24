@@ -13,6 +13,7 @@ AI output validation:
 
 import re
 import json
+import httpx
 from pathlib import Path
 from typing import Optional
 from app.schemas.document import AnalysisPreferences, CalculationStep, ConfirmedFields, ValidationOutput, TaxReport, UserContext
@@ -62,8 +63,10 @@ async def run_tax_analysis(
     outcome_step = next((s for s in reversed(steps) if not s.is_flag), None)
     outcome_explanation = outcome_step.explanation if outcome_step and outcome_step.explanation else ""
 
-    # Step 3: Compute treaty exemption + ITIN guidance flags
-    treaty_amount, treaty_country, needs_itin = compute_report_extras(confirmed, user_context)
+    # Step 3: Compute treaty exemption, ITIN guidance, and Form 8843 data
+    treaty_amount, treaty_country, needs_itin, form_8843_data = compute_report_extras(
+        confirmed, user_context
+    )
 
     return TaxReport(
         document_id=confirmed.document_id,
@@ -75,6 +78,7 @@ async def run_tax_analysis(
         treaty_exempt_amount=treaty_amount,
         treaty_country=treaty_country,
         needs_itin_guidance=needs_itin,
+        form_8843_data=form_8843_data,
     )
 
 
@@ -112,8 +116,13 @@ async def _add_explanations(
             provider=preferences.provider if preferences else "ollama",
             api_key=preferences.api_key if preferences else None,
         )
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code in (401, 403):
+            raise  # propagate auth failures so review.py can return a clear error message
+        # Other HTTP errors (5xx, etc.) — fall back to templates
+        return [s.model_copy(update={"explanation": _template_explanation(s)}) for s in steps]
     except Exception:
-        # LLM unavailable — fall back to templates for all steps
+        # LLM unavailable (Ollama down, timeout, etc.) — fall back to templates
         return [s.model_copy(update={"explanation": _template_explanation(s)}) for s in steps]
 
     # Validate and merge explanations

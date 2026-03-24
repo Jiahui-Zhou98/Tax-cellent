@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tax-cellent — Frontend
 
-## Getting Started
+Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 frontend for the Tax-cellent tax document review product.
 
-First, run the development server:
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The backend must be running on port 8000. See the [root README](../README.md) for backend setup.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+| Variable               | Default                   | Description                                   |
+| ---------------------- | ------------------------- | --------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`  | `http://localhost:8000`   | Backend API base URL                          |
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+├── components/         # UI components (one file per step/feature)
+│   ├── UploadStep.tsx          # Document upload dropzone
+│   ├── ContextStep.tsx         # Immigration questionnaire
+│   ├── ReviewStep.tsx          # Extracted field editor
+│   ├── ValidationStep.tsx      # Rule-based validation results
+│   ├── SettingsStep.tsx        # AI provider picker + API key input
+│   ├── AnalysisStep.tsx        # Progress indicator
+│   ├── ReportStep.tsx          # Calculation Ledger + FICA card
+│   └── SectionCard.tsx         # Shared card wrapper
+├── lib/
+│   └── api.ts                  # Typed API client (all backend calls)
+├── styles/
+│   └── index.ts                # Shared style tokens (inputStyle, glowBtn)
+└── page.tsx                    # Root step-machine orchestrator
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## AI Provider Settings
 
-## Deploy on Vercel
+`SettingsStep` lets users choose between Ollama (local, default) and cloud providers (OpenAI, Anthropic, Gemini). The available model lists and provider keys are defined in:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend:** `components/SettingsStep.tsx` — `PROVIDER_MODELS` constant
+- **Backend:** `app/api/review.py` — `PROVIDER_MODELS` allowlist
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Both must be kept in sync. A `// SYNC:` comment marks both locations.
+
+## Build
+
+```bash
+npm run build
+npm start
+```
+
+## Linting
+
+```bash
+npm run lint
+```

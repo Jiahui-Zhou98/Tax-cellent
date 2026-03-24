@@ -10,18 +10,22 @@ from app.services.llm_client import ensure_provider_configured
 from app.services.validation_service import validate
 from app.services.tax_advisor import run_tax_analysis
 from app.storage.session_store import load_session, save_session
+from app.constants.models import PROVIDER_MODELS
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# SYNC: model lists must match SettingsStep.tsx provider model arrays
-PROVIDER_MODELS: dict[str, list[str]] = {
-    "ollama": [],  # Ollama accepts any model name — skip validation
-    "openai": ["gpt-4o", "gpt-4o-mini", "gpt-5.2"],
-    "anthropic": ["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5"],
-    "gemini": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
-}
+
+@router.get("/providers/models")
+async def get_provider_models() -> dict[str, list[str]]:
+    """Return the per-provider model allow-lists.
+
+    Frontend SettingsStep fetches this on mount so the model picker
+    always reflects exactly what the backend will accept. Ollama's
+    empty list signals "accept any model name — show a free-text input."
+    """
+    return PROVIDER_MODELS
 
 
 class ConfirmRequest(BaseModel):
