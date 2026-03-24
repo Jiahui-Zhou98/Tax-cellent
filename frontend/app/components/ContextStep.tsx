@@ -32,39 +32,57 @@ const STATUS_OPTIONS = [
 const DOMESTIC_STATUS_VALUES = new Set(["US_CITIZEN", "GREEN_CARD", "RESIDENT_ALIEN"]);
 const STUDENT_STATUS_VALUES = new Set(["F-1", "J-1", "OPT", "CPT"]);
 
+export type ContextValues = {
+  visaType: string;
+  entryDate: string;
+  days0: string;
+  days1: string;
+  days2: string;
+  has1042s: boolean;
+  wantsState: boolean;
+  stateCode: string;
+  claimsExempt: boolean;
+  necExpenses: string;
+  countryOfOrigin: string;
+  instName: string;
+  instCity: string;
+  instState: string;
+};
+
 export function ContextStep({
   documentId,
   formType,
   onConfirm,
   onBack,
   onContextSaved,
+  initialValues,
 }: {
   documentId: string;
   formType?: string;
   onConfirm: () => void;
   onBack: () => void;
-  onContextSaved?: (ctx: {
-    visaType: string;
+  initialValues?: ContextValues;
+  onContextSaved?: (ctx: ContextValues & {
     entryYear?: string;
     institutionName?: string;
     institutionCity?: string;
     institutionState?: string;
   }) => void;
 }) {
-  const [visaType, setVisaType] = useState("US_CITIZEN");
-  const [entryDate, setEntryDate] = useState("");
-  const [days0, setDays0] = useState("");
-  const [days1, setDays1] = useState("");
-  const [days2, setDays2] = useState("");
-  const [has1042s, setHas1042s] = useState(false);
-  const [wantsState, setWantsState] = useState(false);
-  const [stateCode, setStateCode] = useState("");
-  const [claimsExempt, setClaimsExempt] = useState(false);
-  const [necExpenses, setNecExpenses] = useState("");
-  const [countryOfOrigin, setCountryOfOrigin] = useState("");
-  const [instName, setInstName] = useState("");
-  const [instCity, setInstCity] = useState("");
-  const [instState, setInstState] = useState("");
+  const [visaType, setVisaType] = useState(initialValues?.visaType ?? "US_CITIZEN");
+  const [entryDate, setEntryDate] = useState(initialValues?.entryDate ?? "");
+  const [days0, setDays0] = useState(initialValues?.days0 ?? "");
+  const [days1, setDays1] = useState(initialValues?.days1 ?? "");
+  const [days2, setDays2] = useState(initialValues?.days2 ?? "");
+  const [has1042s, setHas1042s] = useState(initialValues?.has1042s ?? false);
+  const [wantsState, setWantsState] = useState(initialValues?.wantsState ?? false);
+  const [stateCode, setStateCode] = useState(initialValues?.stateCode ?? "");
+  const [claimsExempt, setClaimsExempt] = useState(initialValues?.claimsExempt ?? false);
+  const [necExpenses, setNecExpenses] = useState(initialValues?.necExpenses ?? "");
+  const [countryOfOrigin, setCountryOfOrigin] = useState(initialValues?.countryOfOrigin ?? "");
+  const [instName, setInstName] = useState(initialValues?.instName ?? "");
+  const [instCity, setInstCity] = useState(initialValues?.instCity ?? "");
+  const [instState, setInstState] = useState(initialValues?.instState ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +116,12 @@ export function ContextStep({
       });
       onContextSaved?.({
         visaType,
+        entryDate,
+        days0, days1, days2,
+        has1042s, wantsState, stateCode,
+        claimsExempt, necExpenses, countryOfOrigin,
+        instName, instCity, instState,
+        // backward-compat aliases consumed by ZeroIncomeStep prefill
         entryYear: entryDate || undefined,
         institutionName: instName.trim() || undefined,
         institutionCity: instCity.trim() || undefined,

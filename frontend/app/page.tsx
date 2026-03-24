@@ -4,7 +4,7 @@ import { useState } from "react";
 import { type OCROutput, type ValidationOutput, type TaxReport, type AnalysisPreferences } from "./lib/api";
 import { StepBar } from "./components/StepBar";
 import { UploadStep } from "./components/UploadStep";
-import { ContextStep } from "./components/ContextStep";
+import { ContextStep, type ContextValues } from "./components/ContextStep";
 import { FieldReviewStep } from "./components/FieldReviewStep";
 import { ValidationStep } from "./components/ValidationStep";
 import { SettingsStep } from "./components/SettingsStep";
@@ -27,6 +27,8 @@ export default function Home() {
     provider: "ollama",
   });
   const [zeroIncomePath, setZeroIncomePath] = useState(false);
+  // Full context values — restored when user navigates back to ContextStep
+  const [savedContextValues, setSavedContextValues] = useState<ContextValues | null>(null);
   // Institution fields captured in ContextStep — pre-populated into ZeroIncomeStep
   const [institutionPrefill, setInstitutionPrefill] = useState<{
     visaType?: string;
@@ -35,6 +37,10 @@ export default function Home() {
     institutionCity?: string;
     institutionState?: string;
   }>({});
+  // FieldReviewStep state — restored when user navigates back to that step
+  type FieldState = Record<string, { value: string; source: string; confidence: number }>;
+  const [savedFieldReviewFields, setSavedFieldReviewFields] = useState<FieldState | null>(null);
+  const [savedFieldReviewUnresolved, setSavedFieldReviewUnresolved] = useState<string[] | null>(null);
 
   if (zeroIncomePath) {
     return (
@@ -66,10 +72,12 @@ export default function Home() {
         <ContextStep
           documentId={ocr.document_id}
           formType={ocr.field_candidates["form_type"]?.value ?? undefined}
+          initialValues={savedContextValues ?? undefined}
           onConfirm={() => setStep(2)}
-          onBack={() => { setOcr(null); setStep(0); }}
+          onBack={() => { setOcr(null); setSavedContextValues(null); setSavedFieldReviewFields(null); setSavedFieldReviewUnresolved(null); setStep(0); }}
           onContextSaved={(ctx) => {
             setVisaType(ctx.visaType);
+            setSavedContextValues(ctx);
             setInstitutionPrefill({
               visaType: ctx.visaType,
               entryYear: ctx.entryYear,
@@ -86,6 +94,12 @@ export default function Home() {
           ocr={ocr}
           onConfirm={(v) => { setValidation(v); setStep(3); }}
           onBack={() => setStep(1)}
+          savedFields={savedFieldReviewFields ?? undefined}
+          savedUnresolved={savedFieldReviewUnresolved ?? undefined}
+          onStateSave={(fields, unresolved) => {
+            setSavedFieldReviewFields(fields);
+            setSavedFieldReviewUnresolved(unresolved);
+          }}
         />
       )}
 

@@ -111,19 +111,26 @@ const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: stri
   ],
 };
 
+type FieldState = Record<string, { value: string; source: string; confidence: number }>;
+
 export function FieldReviewStep({
   ocr,
   onConfirm,
   onBack,
+  savedFields,
+  savedUnresolved,
+  onStateSave,
 }: {
   ocr: OCROutput;
   onConfirm: (validation: ValidationOutput) => void;
   onBack: () => void;
+  savedFields?: FieldState;
+  savedUnresolved?: string[];
+  onStateSave?: (fields: FieldState, unresolved: string[]) => void;
 }) {
-  const [fields, setFields] = useState<
-    Record<string, { value: string; source: string; confidence: number }>
-  >(() => {
-    const init: Record<string, { value: string; source: string; confidence: number }> = {};
+  const [fields, setFields] = useState<FieldState>(() => {
+    if (savedFields) return savedFields;
+    const init: FieldState = {};
     for (const [k, v] of Object.entries(ocr.field_candidates)) {
       init[k] = { value: v.value ?? "", source: v.source, confidence: v.confidence };
     }
@@ -138,7 +145,9 @@ export function FieldReviewStep({
     }
     return init;
   });
-  const [unresolved, setUnresolved] = useState<Set<string>>(new Set());
+  const [unresolved, setUnresolved] = useState<Set<string>>(
+    savedUnresolved ? new Set(savedUnresolved) : new Set()
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,6 +166,8 @@ export function FieldReviewStep({
   };
 
   const handleConfirm = async () => {
+    // Snapshot state before navigating forward so it can be restored on Back
+    onStateSave?.(fields, Array.from(unresolved));
     setLoading(true);
     setError(null);
     const payload: Record<string, { value: string | null; source: string; confidence: number }> = {};
@@ -195,7 +206,7 @@ export function FieldReviewStep({
           </p>
         </div>
         <button
-          onClick={onBack}
+          onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
           disabled={loading}
           className="text-sm text-slate-600 hover:text-slate-300 transition-colors mt-1 whitespace-nowrap disabled:opacity-40"
         >
@@ -239,7 +250,7 @@ export function FieldReviewStep({
 
       <div className="flex gap-3">
         <button
-          onClick={onBack}
+          onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
           disabled={loading}
           className="px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 font-medium text-sm transition-all disabled:opacity-40"
           style={{ border: "1px solid rgba(71,85,105,0.5)" }}
