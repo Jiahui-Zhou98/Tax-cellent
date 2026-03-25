@@ -317,10 +317,12 @@ def _get_1040nr_template(year: int):
         if missing:
             logger.warning(
                 "Form 1040NR (%d): %d expected AcroForm fields missing from PDF. "
-                "Falling back to coordinate overlay. Missing: %s",
+                "Filling available fields; missing will be skipped: %s",
                 year, len(missing), sorted(missing)[:10],
             )
-            has_acroform = False
+            # Do NOT fall back to coordinate overlay — pypdf silently skips
+            # missing fields, so the AcroForm fill still works for all present
+            # fields. Coordinate overlay is only for flat PDFs with no AcroForm.
 
     _1040nr_cache[year] = (reader, has_acroform)
     return reader, has_acroform
