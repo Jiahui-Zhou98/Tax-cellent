@@ -1,4 +1,4 @@
-"""Forms API — generate and bundle IRS Form 8843 PDFs.
+"""Forms API — generate and bundle IRS Form 8843 and 1040NR PDFs.
 
 Endpoints
 ---------
@@ -9,6 +9,10 @@ POST /api/forms/8843/generate
 POST /api/forms/bundle
     Body: Form8843BundleRequest  (multiple years / catch-up filing)
     Returns: application/pdf (multi-page bundle with cover sheet)
+
+POST /api/forms/package
+    Body: { document_id: str }
+    Returns: application/pdf (cover sheet + 1040NR + optional Form 8843)
 """
 
 from __future__ import annotations
@@ -21,7 +25,14 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.schemas.form_8843 import Form8843Data
-from app.services.form_generator import bundle_pdfs, generate_8843, generate_cover_sheet
+from app.services.form_generator import (
+    bundle_pdfs,
+    generate_8843,
+    generate_cover_sheet,
+    generate_1040nr,
+    generate_cover_sheet_package,
+)
+from app.storage.session_store import load_session
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +46,10 @@ router = APIRouter()
 class Form8843GenerateRequest(BaseModel):
     data: Form8843Data
     year: Optional[int] = None  # override data.tax_year if provided
+
+
+class TaxPackageRequest(BaseModel):
+    document_id: str
 
 
 class Form8843BundleRequest(BaseModel):
@@ -127,6 +142,74 @@ async def bundle_forms(req: Form8843BundleRequest) -> Response:
     if len(data_list) > 4:
         years_str += "_etc"
     filename = f"f8843_bundle_{years_str}_{name_slug}.pdf"
+
+    return Response(
+        content=bundled,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/forms/package")
+async def generate_tax_package(req: TaxPackageRequest) -> Response:
+    """Generate a complete tax filing package for NRA students.
+
+    Bundle contents (in order):
+      1. Cover sheet with filing instructions
+      2. IRS Form 1040NR (filled)
+      3. IRS Form 8843 (filled, only when form_8843_data is present)
+
+    Requires a completed tax analysis (session.tax_report must be set).
+    """
+    try:
+        session = load_session(req.document_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.tax_report is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Tax analysis not yet complete. Run /api/analyze first.",
+        )
+
+    report = session.tax_report
+
+    # Collect PDF parts: cover sheet first, then forms
+    pdf_parts: list[bytes] = []
+
+    # 1. Cover sheet
+    try:
+        pdf_parts.append(generate_cover_sheet_package(report))
+    except Exception:
+        logger.warning("package: cover sheet generation failed, skipping", exc_info=True)
+
+    # 2. Form 1040NR
+    try:
+        pdf_parts.append(generate_1040nr(report))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=f"Form 1040NR template not available. {e}")
+    except Exception as e:
+        logger.exception("package: 1040NR generation failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # 3. Form 8843 (only for NRA filers who have 8843 data)
+    if report.form_8843_data is not None:
+        try:
+            pdf_parts.append(generate_8843(report.form_8843_data))
+        except FileNotFoundError as e:
+            logger.warning("package: Form 8843 template not available — skipping: %s", e)
+        except Exception:
+            logger.warning("package: Form 8843 generation failed, skipping", exc_info=True)
+
+    if not pdf_parts:
+        raise HTTPException(status_code=500, detail="PDF generation failed for all package components.")
+
+    bundled = bundle_pdfs(pdf_parts)
+
+    tax_year = (report.form_8843_data.tax_year if report.form_8843_data else 2024)
+    filename = f"tax-package-{tax_year}.pdf"
 
     return Response(
         content=bundled,

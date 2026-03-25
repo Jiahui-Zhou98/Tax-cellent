@@ -4,6 +4,7 @@ import { useState } from "react";
 import { type TaxReport, type OCROutput } from "../lib/api";
 import { NRA_VISA_TYPES } from "../lib/constants";
 import { Form8843Card } from "./Form8843Card";
+import { ExportButton } from "./ExportButton";
 
 function Form843Field({
   label,
@@ -497,6 +498,11 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {/* Form 8843 card — shown for NRA visa types when the engine populated form_8843_data */}
       {report.form_8843_data && NRA_VISA_TYPES.includes(report.form_8843_data.visa_type) && (
         <Form8843Card data={report.form_8843_data} />
+      )}
+
+      {/* Export tax filing package — shown for NRA users with form_8843_data */}
+      {report.form_8843_data && NRA_VISA_TYPES.includes(report.form_8843_data.visa_type) && (
+        <ExportButton documentId={report.document_id} />
       )}
 
       <button

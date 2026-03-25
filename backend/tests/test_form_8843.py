@@ -118,24 +118,26 @@ def test_t04_domestic_visa_skips_8843():
     """compute_report_extras returns None form_8843_data for domestic filers."""
     confirmed = _make_confirmed()
     ctx = _make_user_context(visa_type="US_CITIZEN")
-    _, _, _, form_8843_data = compute_report_extras(confirmed, ctx)
-    assert form_8843_data is None, (
+    extras = compute_report_extras(confirmed, ctx)
+    assert extras["form_8843_data"] is None, (
         "Non-NRA visa type should not generate Form8843Data"
     )
 
 
 # ---------------------------------------------------------------------------
-# T05 — compute_report_extras returns 4-tuple with form_8843_data
+# T05 — compute_report_extras returns ReportExtras TypedDict with form_8843_data
 # ---------------------------------------------------------------------------
 
-def test_t05_compute_report_extras_returns_4_tuple():
+def test_t05_compute_report_extras_returns_typed_dict():
     confirmed = _make_confirmed()
     ctx = _make_user_context(visa_type="F-1")
-    result = compute_report_extras(confirmed, ctx)
-    assert len(result) == 4
-    treaty_amount, treaty_country, needs_itin, form_8843_data = result
-    assert form_8843_data is not None
-    assert isinstance(form_8843_data, Form8843Data)
+    extras = compute_report_extras(confirmed, ctx)
+    assert extras["form_8843_data"] is not None
+    assert isinstance(extras["form_8843_data"], Form8843Data)
+    # Verify all expected keys are present
+    for key in ("treaty_exempt_amount", "treaty_country", "treaty_article",
+                "needs_itin_guidance", "form_8843_data", "wages", "gross_income", "withholding"):
+        assert key in extras, f"Missing key: {key}"
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +152,8 @@ def test_t06_institution_fields_in_form_8843_data():
         institution_city="Cambridge",
         institution_state="MA",
     )
-    _, _, _, form_8843_data = compute_report_extras(confirmed, ctx)
+    extras = compute_report_extras(confirmed, ctx)
+    form_8843_data = extras["form_8843_data"]
     assert form_8843_data is not None
     assert form_8843_data.institution_name == "MIT"
     assert form_8843_data.institution_city == "Cambridge"

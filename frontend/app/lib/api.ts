@@ -235,6 +235,23 @@ export async function bundleForms(
 }
 
 /**
+ * Download a complete tax filing package (cover + 1040NR + optional 8843).
+ * Returns a Blob containing the bundled PDF.
+ */
+export async function downloadTaxPackage(documentId: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/api/forms/package`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_id: documentId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Tax package generation failed");
+  }
+  return res.blob();
+}
+
+/**
  * Fetch per-provider model allow-lists from the backend.
  * Single source of truth — both validation and the SettingsStep picker
  * read from the same backend constant.

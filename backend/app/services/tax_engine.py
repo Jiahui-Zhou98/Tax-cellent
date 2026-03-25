@@ -15,7 +15,7 @@ Data flow:
     CalculationStep.explanation         ← AI plain-English, no new numbers
 """
 
-from typing import Literal, Optional
+from typing import Literal, Optional, TypedDict
 from app.schemas.document import CalculationStep, ConfirmedFields, UserContext
 from app.schemas.form_8843 import Form8843Data
 from app.constants.tax_constants import NRA_VISA_TYPES
@@ -1082,23 +1082,42 @@ _TREATY_ELIGIBLE_VISAS = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
 _ITIN_GUIDANCE_VISAS = {"F-1", "J-1", "F1", "J1", "OPT", "CPT"}
 
 
+class ReportExtras(TypedDict):
+    """All supplementary values needed to build TaxReport and generate the 1040NR PDF.
+
+    All fields reading from confirmed_fields are done here (DRY).
+    generate_1040nr() in form_generator.py reads from TaxReport which is populated
+    by unpacking this TypedDict.
+    """
+    treaty_exempt_amount: Optional[float]   # USD amount exempt under treaty
+    treaty_country: Optional[str]           # Display name of treaty country
+    treaty_article: Optional[str]           # Treaty article citation, e.g. "Art. XXI"
+    needs_itin_guidance: bool               # True when student visa + no SSN
+    form_8843_data: Optional[Form8843Data]  # Populated for NRA visa types
+    wages: Optional[float]                  # W-2 Box 1 ONLY (None for NEC filers)
+    gross_income: Optional[float]           # NEC Box 1 ONLY (None for W-2 filers)
+    withholding: Optional[float]            # Federal income tax withheld
+
+
 def compute_report_extras(
     confirmed: ConfirmedFields,
     user_context: Optional[UserContext],
-) -> tuple[Optional[float], Optional[str], bool, Optional[Form8843Data]]:
-    """Compute treaty_exempt_amount, treaty_country, needs_itin_guidance, and form_8843_data.
+) -> ReportExtras:
+    """Compute all supplementary TaxReport values from confirmed fields + user context.
 
     Called by tax_advisor.run_tax_analysis() to populate TaxReport extras.
-
-    Returns:
-        treaty_exempt_amount: USD amount exempt under treaty (0 if no treaty applies)
-        treaty_country:       Display name of the treaty country (or None)
-        needs_itin_guidance:  True when student visa + no SSN/ITIN detected
-        form_8843_data:       Populated for NRA_VISA_TYPES; triggers Form8843Card display
+    All field-reading from confirmed_fields is centralized here (DRY).
     """
-    # --- Treaty exemption (Exp 2 / TODO-9) ---
+    fields = confirmed.confirmed_fields
+
+    def _fv(name: str) -> Optional[str]:
+        fv = fields.get(name)
+        return fv.value if fv else None
+
+    # --- Treaty exemption ---
     treaty_amount: Optional[float] = None
     treaty_country_name: Optional[str] = None
+    treaty_article: Optional[str] = None
 
     if user_context and user_context.country_of_origin:
         code = user_context.country_of_origin.upper().strip()
@@ -1119,12 +1138,6 @@ def compute_report_extras(
                         eligible = True  # unknown entry year → assume eligible
 
                 if eligible:
-                    # Get income from confirmed fields
-                    fields = confirmed.confirmed_fields
-                    def _fv(name: str) -> Optional[str]:
-                        fv = fields.get(name)
-                        return fv.value if fv else None
-
                     income_raw = (
                         _fv("box_1_wages")
                         or _fv("box_1_nonemployee_compensation")
@@ -1135,20 +1148,35 @@ def compute_report_extras(
                     if exempt > 0:
                         treaty_amount = round(exempt, 2)
                         treaty_country_name = treaty["country"]
+                        treaty_article = treaty["article"]
 
     # --- ITIN guidance ---
     needs_itin = False
     if user_context and (user_context.visa_type or "").strip() in _ITIN_GUIDANCE_VISAS:
-        fields = confirmed.confirmed_fields
         ssn_fv = fields.get("employee_ssn") or fields.get("recipient_tin")
         has_ssn = bool(ssn_fv and ssn_fv.value and ssn_fv.value.strip())
         needs_itin = not has_ssn
 
     # --- Form 8843 data assembly ---
-    # Populate for all NRA_VISA_TYPES on the income path.  The income path sets
-    # has_income=True; F-2/J-2 dependents are included (they also must file 8843).
     form_8843_data: Optional[Form8843Data] = None
     if user_context and (user_context.visa_type or "").strip() in NRA_VISA_TYPES:
         form_8843_data = _assemble_form_8843_data(user_context, has_income=True)
 
-    return treaty_amount, treaty_country_name, needs_itin, form_8843_data
+    # --- 1040NR income fields (W-2 vs NEC separation) ---
+    wages: Optional[float] = _parse_float(_fv("box_1_wages"))
+    gross_income: Optional[float] = _parse_float(_fv("box_1_nonemployee_compensation"))
+    # Withholding: W-2 Box 2 takes precedence; fall back to NEC Box 4
+    withholding: Optional[float] = _parse_float(
+        _fv("box_2_federal_tax_withheld") or _fv("box_4_federal_tax_withheld")
+    )
+
+    return ReportExtras(
+        treaty_exempt_amount=treaty_amount,
+        treaty_country=treaty_country_name,
+        treaty_article=treaty_article,
+        needs_itin_guidance=needs_itin,
+        form_8843_data=form_8843_data,
+        wages=wages,
+        gross_income=gross_income,
+        withholding=withholding,
+    )

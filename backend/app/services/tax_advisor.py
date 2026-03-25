@@ -63,10 +63,8 @@ async def run_tax_analysis(
     outcome_step = next((s for s in reversed(steps) if not s.is_flag), None)
     outcome_explanation = outcome_step.explanation if outcome_step and outcome_step.explanation else ""
 
-    # Step 3: Compute treaty exemption, ITIN guidance, and Form 8843 data
-    treaty_amount, treaty_country, needs_itin, form_8843_data = compute_report_extras(
-        confirmed, user_context
-    )
+    # Step 3: Compute treaty exemption, ITIN guidance, Form 8843, and 1040NR fields
+    extras = compute_report_extras(confirmed, user_context)
 
     return TaxReport(
         document_id=confirmed.document_id,
@@ -75,10 +73,14 @@ async def run_tax_analysis(
         estimated_amount=amount,
         outcome_explanation=outcome_explanation,
         validation_results=validation.issues,
-        treaty_exempt_amount=treaty_amount,
-        treaty_country=treaty_country,
-        needs_itin_guidance=needs_itin,
-        form_8843_data=form_8843_data,
+        treaty_exempt_amount=extras["treaty_exempt_amount"],
+        treaty_country=extras["treaty_country"],
+        treaty_article=extras["treaty_article"],
+        needs_itin_guidance=extras["needs_itin_guidance"],
+        form_8843_data=extras["form_8843_data"],
+        wages=extras["wages"],
+        gross_income=extras["gross_income"],
+        withholding=extras["withholding"],
     )
 
 

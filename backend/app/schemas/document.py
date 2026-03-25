@@ -116,8 +116,13 @@ class TaxReport(BaseModel):
     validation_results: list[ValidationIssue] = []
     treaty_exempt_amount: Optional[float] = None  # > 0 triggers Form 8833 advisory (Exp 2)
     treaty_country: Optional[str] = None           # Country name for the 8833 advisory
+    treaty_article: Optional[str] = None           # Treaty article citation, e.g. "Art. XXI"
     needs_itin_guidance: bool = False               # True when F-1/J-1/OPT + no SSN detected
     form_8843_data: Optional[Form8843Data] = None   # populated for NRA visa types; triggers Form8843Card
+    # 1040NR export fields — populated by compute_report_extras() in tax_engine.py
+    wages: Optional[float] = None                  # W-2 Box 1 ONLY (None for NEC filers)
+    gross_income: Optional[float] = None           # NEC Box 1 ONLY (None for W-2 filers)
+    withholding: Optional[float] = None            # Federal income tax withheld (W-2 Box 2 / NEC Box 4)
 
 
 class SessionState(BaseModel):
