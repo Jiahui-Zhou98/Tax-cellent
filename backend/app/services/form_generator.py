@@ -400,9 +400,8 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── 1042-S income → Line 8 (other income) ─────────────────────────────
     # The combined/1042-S paths include ch3 income that has no dedicated line
     # (wages → Line 1a, NEC → Line 2, 1042-S → Line 8 "other income").
-    income_1042s = _extract_step_amount(
-        report.calculation_steps, "Chapter 3 Gross Income"
-    ) or _extract_step_amount(
+    _ch3_primary = _extract_step_amount(report.calculation_steps, "Chapter 3 Gross Income")
+    income_1042s = _ch3_primary if _ch3_primary is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 3 Income"
     )
     if income_1042s and income_1042s > 0:
@@ -411,17 +410,15 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── 1042-S withholding → Line 25c (other withholding) ─────────────────
     # compute_report_extras() only captures W-2 or NEC withholding; ch3/ch4
     # withholding must be extracted from calculation_steps here.
-    ch3_wh = _extract_step_amount(
-        report.calculation_steps, "Chapter 3 Federal Tax Withheld"
-    ) or _extract_step_amount(
+    _ch3_wh_p = _extract_step_amount(report.calculation_steps, "Chapter 3 Federal Tax Withheld")
+    ch3_wh = _ch3_wh_p if _ch3_wh_p is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 3 Withheld"
     )
-    ch4_wh = _extract_step_amount(
-        report.calculation_steps, "Chapter 4 Federal Tax Withheld"
-    ) or _extract_step_amount(
+    _ch4_wh_p = _extract_step_amount(report.calculation_steps, "Chapter 4 Federal Tax Withheld")
+    ch4_wh = _ch4_wh_p if _ch4_wh_p is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 4 Withheld"
     )
-    total_1042s_wh = (ch3_wh or 0.0) + (ch4_wh or 0.0)
+    total_1042s_wh = (ch3_wh if ch3_wh is not None else 0.0) + (ch4_wh if ch4_wh is not None else 0.0)
     if total_1042s_wh > 0:
         values["withholding_other"] = f"{total_1042s_wh:.2f}"
         # Recalculate total_withholding to include 1042-S portion
@@ -436,9 +433,8 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── Line 16: Tax on taxable income ────────────────────────────────────
     # "Total Tax Liability" step (NEC/COMBINED) includes SE tax; fall back to
     # "Federal Income Tax" step for the simpler W-2 / 1042-S paths.
-    tax_amount = _extract_step_amount(
-        report.calculation_steps, "Total Tax Liability"
-    ) or _extract_step_amount(
+    _tax_p = _extract_step_amount(report.calculation_steps, "Total Tax Liability")
+    tax_amount = _tax_p if _tax_p is not None else _extract_step_amount(
         report.calculation_steps, "Federal Income Tax"
     )
     if tax_amount is not None and tax_amount > 0:
