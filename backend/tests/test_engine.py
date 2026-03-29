@@ -891,3 +891,190 @@ class TestStateTaxNECIntegration:
         """For NEC with no expenses, state base should equal gross NEC income."""
         state_gross_step = next(s for s in self.steps if s.source_form == "STATE" and "Gross" in s.label)
         assert "$40,000.00" in state_gross_step.output_value
+
+
+# ---------------------------------------------------------------------------
+# Test: PREREQUISITE GATE — combined W-2 + NEC + 1042-S in one ConfirmedFields
+# This test MUST pass before any other bundle/aggregation coding continues.
+# ---------------------------------------------------------------------------
+
+def _make_combined_fields(
+    wages: str = "0",
+    nec_income: str = "0",
+    ch3_income: str = "0",
+    w2_withheld: str = "0",
+    nec_withheld: str = "0",
+    ch3_withholding: str = "0",
+    ch4_withholding: str = "0",
+) -> ConfirmedFields:
+    fields: dict = {
+        "form_type": FieldValue(value="COMBINED", source="aggregation_service", confidence=1.0),
+    }
+    if float(wages):
+        fields["box_1_wages"] = FieldValue(value=wages, source="aggregation_service", confidence=1.0)
+        fields["box_2_federal_tax_withheld"] = FieldValue(value=w2_withheld, source="aggregation_service", confidence=1.0)
+    if float(nec_income):
+        fields["box_1_nonemployee_compensation"] = FieldValue(value=nec_income, source="aggregation_service", confidence=1.0)
+        fields["box_4_federal_tax_withheld"] = FieldValue(value=nec_withheld, source="aggregation_service", confidence=1.0)
+    # Include 1042-S fields when income OR withholding is present (withholding
+    # may exist even if ch3_income = 0, e.g. over-withheld on scholarship).
+    if float(ch3_income) or float(ch3_withholding) or float(ch4_withholding):
+        if float(ch3_income):
+            fields["gross_income_ch3"] = FieldValue(value=ch3_income, source="aggregation_service", confidence=1.0)
+        fields["ch3_withholding"] = FieldValue(value=ch3_withholding, source="aggregation_service", confidence=1.0)
+        fields["ch4_withholding"] = FieldValue(value=ch4_withholding, source="aggregation_service", confidence=1.0)
+    return ConfirmedFields(document_id="bundle-test", confirmed_fields=fields)
+
+
+class TestCombinedPrerequisite:
+    """BLOCKING GATE: Engine must handle W-2 + NEC + 1042-S in one ConfirmedFields.
+
+    Fixture: wages=$30,000 + nec_income=$5,000 + ch3_withholding=$4,000
+    User: F-1 student (NRA, FICA-exempt). No business expenses.
+
+    Expected (NRA, no standard deduction):
+      Total ECI = $30,000 + $5,000 net NEC + $0 ch3 = $35,000
+      Income tax = 10% × $11,925 + 12% × ($35,000 − $11,925) = $3,961.50
+      SE tax = $0 (F-1 FICA-exempt)
+      Total liability = $3,961.50
+      Total withheld = $0 W-2 + $0 NEC + $4,000 ch3 = $4,000
+      Balance = $4,000 − $3,961.50 = $38.50 REFUND
+    """
+
+    def setup_method(self):
+        confirmed = _make_combined_fields(
+            wages="30000",
+            nec_income="5000",
+            ch3_withholding="4000",
+        )
+        context = _f1_context(entry_year="2022")  # F-1, year 4 → still exempt
+        self.steps, self.outcome, self.amount = calculate(confirmed, context)
+
+    def test_returns_steps(self):
+        assert len(self.steps) >= 5, "Combined calculation must return ledger steps"
+
+    def test_outcome_is_not_unknown(self):
+        assert self.outcome != "unknown", "Engine must handle COMBINED form_type"
+
+    def test_outcome_is_refund(self):
+        assert self.outcome == "refund"
+
+    def test_refund_amount_correct(self):
+        # Income tax on $35,000 (NRA, no deduction):
+        # 10% × 11,925 = 1,192.50
+        # 12% × (35,000 - 11,925) = 12% × 23,075 = 2,769.00
+        # Total = 3,961.50; withheld = 4,000; refund = 38.50
+        assert self.amount == pytest.approx(38.50, abs=1.0)
+
+    def test_w2_step_tagged_correctly(self):
+        w2_steps = [s for s in self.steps if s.source_form == "W-2"]
+        assert len(w2_steps) >= 1, "W-2 steps must be tagged source_form='W-2'"
+
+    def test_nec_step_tagged_correctly(self):
+        nec_steps = [s for s in self.steps if s.source_form == "1099-NEC"]
+        assert len(nec_steps) >= 1, "NEC steps must be tagged source_form='1099-NEC'"
+
+    def test_1042s_step_tagged_correctly(self):
+        s1042_steps = [s for s in self.steps if s.source_form == "1042-S"]
+        assert len(s1042_steps) >= 1, "1042-S steps must be tagged source_form='1042-S'"
+
+    def test_fica_exempt_flag_present(self):
+        """F-1 NEC filer must get SE tax exemption flag, not SE tax charge."""
+        se_flags = [s for s in self.steps if s.is_flag and "FICA" in s.label]
+        assert len(se_flags) >= 1, "F-1 filer should get FICA-exempt SE tax flag"
+
+    def test_no_se_tax_for_fica_exempt(self):
+        """F-1 filer should not have SE tax in liability."""
+        se_steps = [s for s in self.steps if "Self-Employment Tax" in s.label and not s.is_flag]
+        assert len(se_steps) == 0, "FICA-exempt filer must not owe SE tax"
+
+
+class TestCombined1042SOnly:
+    """Single 1042-S document goes through 1042-S sub-calculator."""
+
+    def setup_method(self):
+        confirmed = ConfirmedFields(
+            document_id="test-1042s",
+            confirmed_fields={
+                "form_type": FieldValue(value="1042-S", source="ocr", confidence=0.9),
+                "gross_income_ch3": FieldValue(value="20000", source="user_confirmed", confidence=1.0),
+                "ch3_withholding": FieldValue(value="3000", source="user_confirmed", confidence=1.0),
+                "ch4_withholding": FieldValue(value="0", source="user_confirmed", confidence=1.0),
+            },
+        )
+        self.steps, self.outcome, self.amount = calculate(confirmed, None)
+
+    def test_returns_steps(self):
+        assert len(self.steps) >= 5
+
+    def test_outcome_is_not_unknown(self):
+        assert self.outcome != "unknown"
+
+    def test_owe_correct_amount(self):
+        # Tax on $20,000 (NRA default, no deduction):
+        # 10% × 11,925 = 1,192.50; 12% × (20,000 - 11,925) = 969.00 → total = 2,161.50
+        # withheld = 3,000; refund = 838.50
+        assert self.outcome == "refund"
+        assert self.amount == pytest.approx(838.50, abs=1.0)
+
+    def test_source_form_tagged_1042s(self):
+        income_steps = [s for s in self.steps if s.source_form == "1042-S"]
+        assert len(income_steps) >= 3
+
+
+class TestCombinedW2PlusNEC:
+    """W-2 + 1099-NEC combined, H-1B filer (not FICA exempt) — SE tax applies."""
+
+    def setup_method(self):
+        confirmed = _make_combined_fields(
+            wages="40000",
+            w2_withheld="5000",
+            nec_income="10000",
+        )
+        context = _h1b_context()
+        self.steps, self.outcome, self.amount = calculate(confirmed, context)
+
+    def test_returns_steps(self):
+        assert len(self.steps) >= 5
+
+    def test_se_tax_step_present(self):
+        """H-1B filer with NEC income must have SE tax step."""
+        se_steps = [s for s in self.steps if "Self-Employment" in s.label and not s.is_flag]
+        assert len(se_steps) >= 1
+
+    def test_outcome_is_owe_or_refund(self):
+        assert self.outcome in ("owe", "refund", "balanced")
+
+    def test_combined_step_present(self):
+        combined_steps = [s for s in self.steps if s.source_form == "COMBINED"]
+        assert len(combined_steps) >= 1
+
+
+class TestCombinedZeroIncomeFields:
+    """All income fields = $0 → unknown outcome (nothing to calculate)."""
+
+    def test_all_zero_returns_unknown(self):
+        confirmed = _make_combined_fields()  # all defaults = "0"
+        steps, outcome, amount = calculate(confirmed, None)
+        assert outcome == "unknown"
+        assert steps == []
+
+
+class TestCombinedLargeIncome:
+    """Very large combined income ($500k+) → correct top bracket applied."""
+
+    def test_large_income_top_bracket(self):
+        confirmed = _make_combined_fields(
+            wages="400000",
+            nec_income="100000",
+            w2_withheld="120000",
+        )
+        context = UserContext(visa_type="H-1B")  # RA for this test
+        steps, outcome, amount = calculate(confirmed, context)
+        assert outcome in ("refund", "owe", "balanced")
+        # Top bracket is 37%. Total ECI: 400k wages + 100k nec net = 500k.
+        # With standard deduction (RA): taxable = 500k - 14,600 = 485,400
+        # This is clearly in the 37% bracket. Tax >> $120k withheld → owe.
+        # Just verify the engine doesn't crash and returns a numeric amount.
+        assert amount is not None
+        assert amount > 0

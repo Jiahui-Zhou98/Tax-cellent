@@ -972,6 +972,401 @@ def _calculate_w2(
     return steps, outcome, abs(balance)
 
 
+def _calculate_1042s(
+    confirmed: ConfirmedFields,
+    user_context: Optional[UserContext] = None,
+) -> tuple[list[CalculationStep], str, Optional[float]]:
+    """Calculate federal tax outcome for a Form 1042-S filer (2025, single NRA).
+
+    1042-S reports income subject to Chapter 3 withholding (e.g. scholarship
+    stipends, fellowship payments).  Chapter 3 income is ECI-equivalent for
+    NRA students and is taxed at the graduated rates on Form 1040-NR.
+
+    Ledger:
+      1. Chapter 3 gross income (1042-S Box 2)
+      2. No standard deduction (NRA filer)
+      3. Taxable income
+      4. Federal income tax
+      5. Chapter 3 withholding (1042-S Box 7)
+      6. Chapter 4 withholding (1042-S Box 8, often $0)
+      7. Estimated federal balance
+    """
+    fields = confirmed.confirmed_fields
+    steps: list[CalculationStep] = []
+    n = 1
+
+    def field_val(name: str) -> Optional[str]:
+        fv = fields.get(name)
+        return fv.value if fv else None
+
+    # Step 1: Chapter 3 gross income
+    ch3_income_raw = field_val("gross_income_ch3")
+    ch3_income = _parse_float(ch3_income_raw)
+    if ch3_income is None:
+        return [], "unknown", None
+
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Chapter 3 Gross Income (1042-S Box 2)",
+        rule_reference="Form 1042-S, Box 2 — Gross Income",
+        input_value="1042-S Box 2",
+        output_value=f"${ch3_income:,.2f}",
+    ))
+    n += 1
+
+    # Step 2: No standard deduction for NRA
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="No Standard Deduction (Nonresident Alien — Form 1040-NR)",
+        rule_reference="IRS Pub. 519 Chapter 4; Form 1040-NR instructions",
+        input_value="NRA — no standard deduction",
+        output_value="− $0.00",
+    ))
+    n += 1
+
+    # Step 3: Taxable income
+    taxable = max(0.0, ch3_income)
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Taxable Income",
+        rule_reference="Form 1040-NR, Line 15",
+        input_value=f"${ch3_income:,.2f} − $0.00",
+        output_value=f"${taxable:,.2f}",
+    ))
+    n += 1
+
+    # Step 4: Federal income tax
+    federal_tax = _apply_brackets(taxable)
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Federal Income Tax",
+        rule_reference="IRS 2025 Tax Table (Rev. Proc. 2024-40, Table 1)",
+        input_value=f"${taxable:,.2f} taxable income",
+        output_value=f"${federal_tax:,.2f}",
+    ))
+    n += 1
+
+    # Step 5: Chapter 3 withholding
+    ch3_withheld = _parse_float(field_val("ch3_withholding")) or 0.0
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Chapter 3 Federal Tax Withheld (1042-S Box 7)",
+        rule_reference="Form 1042-S, Box 7 — U.S. Federal Tax Withheld",
+        input_value="1042-S Box 7",
+        output_value=f"${ch3_withheld:,.2f}",
+    ))
+    n += 1
+
+    # Step 6: Chapter 4 withholding (typically $0 for students)
+    ch4_withheld = _parse_float(field_val("ch4_withholding")) or 0.0
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Chapter 4 Federal Tax Withheld (1042-S Box 8)",
+        rule_reference="Form 1042-S, Box 8 — U.S. Federal Tax Withheld (Ch.4)",
+        input_value="1042-S Box 8",
+        output_value=f"${ch4_withheld:,.2f}",
+    ))
+    n += 1
+
+    # Step 7: Estimated balance
+    total_withheld = round(ch3_withheld + ch4_withheld, 2)
+    balance = round(total_withheld - federal_tax, 2)
+    if balance > 0:
+        outcome = "refund"
+        outcome_label = f"Estimated Refund: ${balance:,.2f}"
+    elif balance < 0:
+        outcome = "owe"
+        outcome_label = f"Estimated Tax Owed: ${abs(balance):,.2f}"
+    else:
+        outcome = "balanced"
+        outcome_label = "Balanced — no refund or amount owed"
+
+    steps.append(CalculationStep(
+        step_number=n, source_form="1042-S",
+        label="Estimated Federal Balance",
+        rule_reference="Form 1040-NR, Line 35a / Line 37",
+        input_value=f"${total_withheld:,.2f} withheld − ${federal_tax:,.2f} liability",
+        output_value=outcome_label,
+    ))
+
+    if user_context and user_context.wants_state_estimate and user_context.state_code:
+        state_steps = _calculate_state_tax(ch3_income, user_context.state_code)
+        steps.extend(state_steps)
+
+    return steps, outcome, abs(balance)
+
+
+def _calculate_combined(
+    confirmed: ConfirmedFields,
+    user_context: Optional[UserContext] = None,
+) -> tuple[list[CalculationStep], str, Optional[float]]:
+    """Calculate federal tax for a filer with income from multiple form types.
+
+    Aggregation service merges numeric fields before calling this function.
+    All source-form fields are additive; step source_form tags show origin.
+
+    Combined income:
+      - box_1_wages               → W-2 wages (ECI)
+      - box_1_nonemployee_compensation → 1099-NEC gross (ECI, subject to SE tax)
+      - gross_income_ch3          → 1042-S Chapter 3 income (ECI)
+
+    Combined withholding:
+      - box_2_federal_tax_withheld → W-2 Box 2
+      - box_4_federal_tax_withheld → 1099-NEC Box 4
+      - ch3_withholding            → 1042-S Box 7
+      - ch4_withholding            → 1042-S Box 8
+
+    NEC income is subject to Self-Employment tax (SE) in addition to income tax.
+    NRA filers receive no standard deduction regardless of form mix.
+    """
+    fields = confirmed.confirmed_fields
+    steps: list[CalculationStep] = []
+    n = 1
+
+    def field_val(name: str) -> Optional[str]:
+        fv = fields.get(name)
+        return fv.value if fv else None
+
+    is_nra = _determine_residency(user_context) == "NRA"
+
+    # --- Income sources ---
+    wages = _parse_float(field_val("box_1_wages")) or 0.0
+    nec_gross = _parse_float(field_val("box_1_nonemployee_compensation")) or 0.0
+    ch3_income = _parse_float(field_val("gross_income_ch3")) or 0.0
+
+    # At least one income source must be present
+    if wages == 0.0 and nec_gross == 0.0 and ch3_income == 0.0:
+        return [], "unknown", None
+
+    # NEC: apply business expenses (from user_context or confirmed field)
+    nec_expenses_raw = field_val("nec_expenses")
+    nec_expenses = _parse_float(nec_expenses_raw) or 0.0
+    if user_context and user_context.nec_business_expenses:
+        nec_expenses = max(nec_expenses, user_context.nec_business_expenses)
+    nec_net = max(0.0, nec_gross - nec_expenses)
+
+    # --- Step 1: W-2 wages (if present) ---
+    if wages > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="W-2",
+            label="W-2 Wages (Combined)",
+            rule_reference="Form W-2, Box 1",
+            input_value="Sum of all W-2 Box 1 wages",
+            output_value=f"${wages:,.2f}",
+        ))
+        n += 1
+
+    # --- Step 2: NEC income (if present) ---
+    if nec_gross > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-NEC",
+            label="1099-NEC Gross Income (Combined)",
+            rule_reference="Form 1099-NEC, Box 1",
+            input_value="Sum of all 1099-NEC Box 1",
+            output_value=f"${nec_gross:,.2f}",
+        ))
+        n += 1
+        if nec_expenses > 0:
+            steps.append(CalculationStep(
+                step_number=n, source_form="1099-NEC",
+                label="NEC Business Expenses (Schedule C)",
+                rule_reference="IRC §162 — ordinary and necessary business expenses",
+                input_value="User-confirmed deductible expenses",
+                output_value=f"− ${nec_expenses:,.2f}",
+            ))
+            n += 1
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-NEC",
+            label="NEC Net Income",
+            rule_reference="Schedule C, Line 31",
+            input_value=f"${nec_gross:,.2f} − ${nec_expenses:,.2f}",
+            output_value=f"${nec_net:,.2f}",
+        ))
+        n += 1
+
+    # --- Step 3: 1042-S income (if present) ---
+    if ch3_income > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1042-S",
+            label="1042-S Chapter 3 Income (Combined)",
+            rule_reference="Form 1042-S, Box 2 — Gross Income",
+            input_value="Sum of all 1042-S Box 2",
+            output_value=f"${ch3_income:,.2f}",
+        ))
+        n += 1
+
+    # --- Step 4: Total ECI (effectively connected income) ---
+    total_eci = round(wages + nec_net + ch3_income, 2)
+    steps.append(CalculationStep(
+        step_number=n, source_form="COMBINED",
+        label="Total Effectively Connected Income",
+        rule_reference="Form 1040-NR, Line 8 — Total ECI",
+        input_value=" + ".join(filter(None, [
+            f"${wages:,.2f} W-2" if wages else None,
+            f"${nec_net:,.2f} NEC net" if nec_gross else None,
+            f"${ch3_income:,.2f} 1042-S" if ch3_income else None,
+        ])),
+        output_value=f"${total_eci:,.2f}",
+    ))
+    n += 1
+
+    # --- Step 5: Standard deduction (NRA = $0) ---
+    std_ded = 0.0 if is_nra else STANDARD_DEDUCTION_SINGLE_2025
+    steps.append(CalculationStep(
+        step_number=n, source_form="COMBINED",
+        label=(
+            "No Standard Deduction (Nonresident Alien — Form 1040-NR)"
+            if is_nra else "Standard Deduction"
+        ),
+        rule_reference=(
+            "IRS Pub. 519 Chapter 4; Form 1040-NR instructions"
+            if is_nra else "IRS Rev. Proc. 2024-40 (2025 single filer)"
+        ),
+        input_value="NRA — no standard deduction" if is_nra else "Single filer",
+        output_value=f"− ${std_ded:,.2f}",
+    ))
+    n += 1
+
+    # --- Step 6: Taxable income ---
+    taxable = max(0.0, total_eci - std_ded)
+    steps.append(CalculationStep(
+        step_number=n, source_form="COMBINED",
+        label="Taxable Income",
+        rule_reference="Form 1040-NR, Line 15",
+        input_value=f"${total_eci:,.2f} − ${std_ded:,.2f}",
+        output_value=f"${taxable:,.2f}",
+    ))
+    n += 1
+
+    # --- Step 7: Federal income tax ---
+    federal_tax = _apply_brackets(taxable)
+    steps.append(CalculationStep(
+        step_number=n, source_form="COMBINED",
+        label="Federal Income Tax",
+        rule_reference="IRS 2025 Tax Table (Rev. Proc. 2024-40, Table 1)",
+        input_value=f"${taxable:,.2f} taxable income",
+        output_value=f"${federal_tax:,.2f}",
+    ))
+    n += 1
+
+    # --- Step 8: SE tax on NEC net (if present and not FICA-exempt) ---
+    se_tax = 0.0
+    if nec_net > 0:
+        visa = (user_context.visa_type or "") if user_context else ""
+        entry_year = (user_context.first_us_entry_date or "") if user_context else ""
+        fica_exempt = _is_fica_exempt(visa, entry_year)
+
+        se_base = round(nec_net * SE_INCOME_MULTIPLIER, 2)
+        se_tax = round(se_base * SE_TAX_RATE, 2)
+
+        if fica_exempt:
+            steps.append(CalculationStep(
+                step_number=n, source_form="1099-NEC",
+                label="⚠ SE Tax: FICA Exempt (F-1/J-1 — No SE Tax)",
+                rule_reference="IRC §1402(b); IRS Pub. 519 — NRA SE tax exemption",
+                input_value=f"Visa: {visa}",
+                output_value="$0.00 SE tax (FICA-exempt status applies)",
+                is_flag=True,
+            ))
+            n += 1
+            se_tax = 0.0
+        else:
+            steps.append(CalculationStep(
+                step_number=n, source_form="1099-NEC",
+                label="Self-Employment Tax (SE)",
+                rule_reference=f"IRC §1401; SE base = net income × {SE_INCOME_MULTIPLIER}",
+                input_value=f"${nec_net:,.2f} net NEC income",
+                output_value=f"${se_tax:,.2f}",
+            ))
+            n += 1
+
+    # --- Step 9: Total tax liability ---
+    total_liability = round(federal_tax + se_tax, 2)
+    if se_tax > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="COMBINED",
+            label="Total Tax Liability",
+            rule_reference="Form 1040-NR — income tax + SE tax",
+            input_value=f"${federal_tax:,.2f} income tax + ${se_tax:,.2f} SE tax",
+            output_value=f"${total_liability:,.2f}",
+        ))
+        n += 1
+
+    # --- Withholding sources ---
+    w2_withheld = _parse_float(field_val("box_2_federal_tax_withheld")) or 0.0
+    nec_withheld = _parse_float(field_val("box_4_federal_tax_withheld")) or 0.0
+    ch3_withheld = _parse_float(field_val("ch3_withholding")) or 0.0
+    ch4_withheld = _parse_float(field_val("ch4_withholding")) or 0.0
+
+    if w2_withheld > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="W-2",
+            label="W-2 Federal Tax Withheld",
+            rule_reference="Form W-2, Box 2",
+            input_value="Sum of all W-2 Box 2",
+            output_value=f"${w2_withheld:,.2f}",
+        ))
+        n += 1
+
+    if nec_withheld > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-NEC",
+            label="1099-NEC Federal Tax Withheld",
+            rule_reference="Form 1099-NEC, Box 4",
+            input_value="Sum of all 1099-NEC Box 4",
+            output_value=f"${nec_withheld:,.2f}",
+        ))
+        n += 1
+
+    if ch3_withheld > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1042-S",
+            label="1042-S Chapter 3 Withheld",
+            rule_reference="Form 1042-S, Box 7",
+            input_value="Sum of all 1042-S Box 7",
+            output_value=f"${ch3_withheld:,.2f}",
+        ))
+        n += 1
+
+    if ch4_withheld > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1042-S",
+            label="1042-S Chapter 4 Withheld",
+            rule_reference="Form 1042-S, Box 8",
+            input_value="Sum of all 1042-S Box 8",
+            output_value=f"${ch4_withheld:,.2f}",
+        ))
+        n += 1
+
+    # --- Final balance ---
+    total_withheld = round(w2_withheld + nec_withheld + ch3_withheld + ch4_withheld, 2)
+    balance = round(total_withheld - total_liability, 2)
+
+    if balance > 0:
+        outcome = "refund"
+        outcome_label = f"Estimated Refund: ${balance:,.2f}"
+    elif balance < 0:
+        outcome = "owe"
+        outcome_label = f"Estimated Tax Owed: ${abs(balance):,.2f}"
+    else:
+        outcome = "balanced"
+        outcome_label = "Balanced — no refund or amount owed"
+
+    steps.append(CalculationStep(
+        step_number=n, source_form="COMBINED",
+        label="Estimated Federal Balance",
+        rule_reference="Form 1040-NR, Line 35a / Line 37",
+        input_value=f"${total_withheld:,.2f} withheld − ${total_liability:,.2f} liability",
+        output_value=outcome_label,
+    ))
+
+    if user_context and user_context.wants_state_estimate and user_context.state_code:
+        state_steps = _calculate_state_tax(total_eci, user_context.state_code)
+        steps.extend(state_steps)
+
+    return steps, outcome, abs(balance)
+
+
 def calculate(
     confirmed: ConfirmedFields,
     user_context: Optional[UserContext] = None,
@@ -987,6 +1382,10 @@ def calculate(
     form_fv = fields.get("form_type")
     form_type = (form_fv.value or "") if form_fv else ""
 
+    if "COMBINED" in form_type:
+        return _calculate_combined(confirmed, user_context)
+    if "1042-S" in form_type:
+        return _calculate_1042s(confirmed, user_context)
     if "1099-NEC" in form_type or "NEC" in form_type:
         return _calculate_nec(confirmed, user_context)
     if "1099-INT" in form_type or "INT" in form_type:

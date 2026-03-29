@@ -28,6 +28,9 @@ class FormType(str, Enum):
     W2 = "W-2"
     NEC_1099 = "1099-NEC"
     INT_1099 = "1099-INT"
+    FORM_1042S = "1042-S"
+    MISC_1099 = "1099-MISC"
+    COMBINED = "COMBINED"
     UNKNOWN = "UNKNOWN"
 
 
@@ -138,3 +141,36 @@ class SessionState(BaseModel):
     analysis_preferences: Optional[AnalysisPreferences] = None
     status: str = "uploaded"
     # status values: uploaded | ocr_done | confirmed | validated | analyzing | complete
+
+
+MAX_DOCUMENTS_PER_BUNDLE = 10
+
+
+class AggregatedFields(BaseModel):
+    """Result of merging N confirmed documents into a single ConfirmedFields
+    ready for the existing tax engine. bundle_id is stored as the document_id
+    sentinel inside confirmed_fields so the existing analyze endpoint is unchanged.
+    """
+    bundle_id: str
+    source_document_ids: list[str]
+    confirmed_fields: ConfirmedFields     # merged, ready for tax engine
+    aggregation_log: list[str] = []       # human-readable merge steps (debug)
+
+
+class DocumentBundle(BaseModel):
+    """Session-level container holding N documents being processed together.
+
+    documents stores document_ids (not embedded SessionState) to keep bundle
+    files small regardless of how many pages each document contains.
+
+    Status state machine:
+        uploading → all_confirmed → aggregated → complete
+                 ↘ error (from any state)
+    """
+    bundle_id: str
+    document_ids: list[str] = []
+    aggregated_fields: Optional[AggregatedFields] = None
+    tax_report: Optional[TaxReport] = None
+    status: str = "uploading"
+    # "primary" document = document_ids[0]; used for non-aggregatable fields
+    # (visa_type, employer_state) when a single value must be chosen.
