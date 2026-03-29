@@ -57,7 +57,7 @@ export function UploadStep({
   });
 
   return (
-    <div className="max-w-xl mx-auto space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-white tracking-tight">
           Upload Tax Document

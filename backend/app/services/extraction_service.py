@@ -33,6 +33,9 @@ _WAGE_FIELDS = {
     "box_18_local_wages",
     "box_1_nonemployee_compensation",
     "box_1_interest_income",
+    "box_1_royalties",           # 1099-MISC Box 1
+    "box_3_other_income",        # 1099-MISC Box 3
+    "gross_income_ch3",          # 1042-S Box 2
 }
 # Tax/withheld fields: pick the SMALLER candidate value
 _TAX_FIELDS = {
@@ -43,6 +46,8 @@ _TAX_FIELDS = {
     "box_19_local_income_tax",
     "box_4_federal_tax_withheld",
     "box_2_early_withdrawal_penalty",
+    "ch3_withholding",           # 1042-S Box 7
+    "ch4_withholding",           # 1042-S Box 8
 }
 
 _MIN_CONFIDENCE = 0.50   # candidates below this are discarded
@@ -230,6 +235,11 @@ def detect_form_type(text: str) -> FieldValue:
         return FieldValue(value=FormType.NEC_1099, confidence=0.95)
     if "1099-INT" in text_upper or "INTEREST INCOME" in text_upper:
         return FieldValue(value=FormType.INT_1099, confidence=0.95)
+    if ("1042-S" in text_upper or "WITHHOLDING AGENT" in text_upper
+            or "CHAPTER 3" in text_upper or "CHAPTER 4" in text_upper):
+        return FieldValue(value=FormType.FORM_1042S, confidence=0.95)
+    if "1099-MISC" in text_upper or "MISCELLANEOUS INFORMATION" in text_upper:
+        return FieldValue(value=FormType.MISC_1099, confidence=0.95)
     return FieldValue(value=FormType.UNKNOWN, confidence=0.3)
 
 
@@ -288,6 +298,47 @@ def extract_fields(text: str) -> dict[str, FieldValue]:
                 r"interest income[^$\d]*\$?([\d,]+\.?\d*)"),
             "box_2_early_withdrawal_penalty": _money(text, r"box 2[^$\d]*\$?([\d,]+\.?\d*)"),
             "box_4_federal_tax_withheld":     _money(text, r"box 4[^$\d]*\$?([\d,]+\.?\d*)"),
+        }
+    elif form_type == FormType.FORM_1042S:
+        return {
+            "form_type":         FieldValue(value="1042-S", confidence=0.95, source="ocr"),
+            "tax_year":          _text_field(text, r"(\b20\d{2}\b)"),
+            "withholding_agent": _text_field(text,
+                r"withholding agent.{0,20}name[:\s]+([A-Za-z ,\.&]+)"),
+            "recipient_name":    _text_field(text,
+                r"recipient.{0,20}name[:\s]+([A-Za-z ,\.]+)"),
+            "recipient_tin":     _text_field(text,
+                r"recipient.{0,20}(?:tin|ssn|ein)[:\s]+([\d\-]+)"),
+            # Box 2: Gross income subject to withholding
+            "gross_income_ch3":  _money(text,
+                r"box 2[^$\d]*\$?([\d,]+\.?\d*)",
+                r"gross income[^$\d]*\$?([\d,]+\.?\d*)"),
+            # Box 7: U.S. federal tax withheld (Chapter 3)
+            "ch3_withholding":   _money(text,
+                r"box 7[^$\d]*\$?([\d,]+\.?\d*)",
+                r"(?:chapter 3|ch\.?\s*3).{0,30}withheld[^$\d]*\$?([\d,]+\.?\d*)"),
+            # Box 8: U.S. federal tax withheld (Chapter 4 / FATCA)
+            "ch4_withholding":   _money(text,
+                r"box 8[^$\d]*\$?([\d,]+\.?\d*)",
+                r"(?:chapter 4|ch\.?\s*4).{0,30}withheld[^$\d]*\$?([\d,]+\.?\d*)"),
+        }
+    elif form_type == FormType.MISC_1099:
+        return {
+            "form_type":      FieldValue(value="1099-MISC", confidence=0.95, source="ocr"),
+            "tax_year":       _text_field(text, r"(\b20\d{2}\b)"),
+            "payer_name":     _text_field(text, r"payer.{0,20}name[:\s]+([A-Za-z ,\.&]+)"),
+            "recipient_name": _text_field(text, r"recipient.{0,20}name[:\s]+([A-Za-z ,\.]+)"),
+            # Box 1: Rents; Box 2: Royalties; Box 3: Other income
+            "box_1_rents":         _money(text, r"box 1[^$\d]*\$?([\d,]+\.?\d*)"),
+            "box_1_royalties":     _money(text,
+                r"box 2[^$\d]*\$?([\d,]+\.?\d*)",
+                r"royalties[^$\d]*\$?([\d,]+\.?\d*)"),
+            "box_3_other_income":  _money(text,
+                r"box 3[^$\d]*\$?([\d,]+\.?\d*)",
+                r"other income[^$\d]*\$?([\d,]+\.?\d*)"),
+            "box_2_federal_tax_withheld": _money(text,
+                r"box 4[^$\d]*\$?([\d,]+\.?\d*)",
+                r"federal.{0,30}withheld[^$\d]*\$?([\d,]+\.?\d*)"),
         }
     else:
         return {

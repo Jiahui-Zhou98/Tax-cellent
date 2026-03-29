@@ -27,7 +27,8 @@ export function ExportButton({ documentId }: ExportButtonProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "tax-package-2024.pdf";
+      const taxYear = new Date().getFullYear() - 1;
+      a.download = `tax-package-${taxYear}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -18,5 +18,5 @@ export const inputStyle: React.CSSProperties = {
   padding: "0.5rem 0.75rem",
   width: "100%",
   fontSize: "0.875rem",
-  outline: "none",
+  // outline is intentionally omitted — focus ring handled by globals.css
 };

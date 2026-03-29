@@ -338,3 +338,129 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 **Depends on / blocked by:** Form 8843 zero-income feature must ship first (so there's actual field mapping code to cross-check).
 
+---
+
+## TODO-18: Bundle API E2E / Integration Tests
+
+**What:** Integration tests for the 6 new bundle API endpoints: `POST /api/bundle`, `POST /bundle/{id}/add-document`, `POST /bundle/{id}/confirm/{doc_id}`, `GET /bundle/{id}/status`, `POST /bundle/{id}/aggregate`, `DELETE /bundle/{id}/document/{doc_id}`. Tests verify full HTTP flow including 409 guards, status transitions, and response shapes. Use FastAPI `TestClient` (already used in `test_form_package_endpoint.py`).
+
+**Why:** Unit tests in `test_aggregation.py` verify aggregation math but not the HTTP layer. The 409 guard (aggregate while doc is pending), status transition (uploading → all_confirmed), and response shape of `/status` can only be verified through integration tests.
+
+**Pros:** Catches contract breakage between the frontend and API. Makes the bundle flow refactorable with confidence.
+
+**Cons:** Requires fixture PDFs or mocking the OCR pipeline for `add-document`. Moderate setup cost.
+
+**Context:** Flagged by /plan-eng-review (2026-03-25). The 16 unit tests cover critical math paths; this TODO covers the HTTP contract. 6 endpoints × 2 scenarios (happy path + error path) = ~12 tests.
+
+**Effort:** M (human: ~3 hours / CC: ~20 min)
+
+**Priority:** P2 — important for hardening before public launch; not blocking the hackathon demo.
+
+**Depends on / blocked by:** Bundle feature implementation must ship first.
+
+---
+
+## TODO-19: 1099-INT Bundle Aggregation
+
+**What:** Add 1099-INT to the bundle aggregation flow. `FormType.INT_1099` and `extract_fields()` already support 1099-INT for single-doc flow. Add aggregation rules in `aggregation_service.py`: sum `box_1_interest_income` across 1099-INT documents. Add `_calculate_1099int()` dispatch in `_calculate_combined()`.
+
+**Why:** Students with US savings accounts receive 1099-INT. Currently they can process a single 1099-INT through the single-doc flow, but cannot bundle it with their W-2. After the multi-doc bundle ships, 1099-INT is the only supported form type left out of bundling.
+
+**Pros:** Completes the aggregation story. Low effort — the pattern is identical to 1099-NEC aggregation.
+
+**Cons:** Interest income for F-1/J-1 students is typically <$100/year — low marginal impact.
+
+**Context:** Flagged by /plan-eng-review (2026-03-25). Scope was intentionally limited to W-2 + 1042-S + 1099-NEC + 1099-MISC for the hackathon bundle. 1099-INT is the natural follow-on.
+
+**Effort:** S (human: ~1 hour / CC: ~10 min)
+
+**Priority:** P3 — completeness; not affecting most users.
+
+**Depends on / blocked by:** Multi-doc bundle feature must ship first.
+
+---
+
+## ~~TODO-20: Single CURRENT_TAX_YEAR Constant~~ ✅ DONE 2026-03-29
+
+**What:** Replace hardcoded "2024" in 3 locations with a single `CURRENT_TAX_YEAR` constant:
+- `backend/app/services/form_generator.py:568`: `tax_year = year or 2024`
+- `frontend/app/components/ExportButton.tsx:30`: `"tax-package-2024.pdf"`
+- `backend/app/services/form_generator.py:644`: `d8843.tax_year if d8843 else 2024`
+
+**Why:** When 2025 filing season arrives, these are scattered landmines across two languages. A single constant in `backend/app/constants/tax_constants.py` (and synced to frontend via `sync_constants.py`) eliminates the annual search-and-replace.
+
+**Effort:** S (human: ~1 hour / CC: ~10 min)
+
+**Priority:** P1 — will break next filing season; easy fix.
+
+**Depends on / blocked by:** Nothing.
+
+**Completed:** `CURRENT_TAX_YEAR = date.today().year - 1` added to `tax_constants.py`. `form_generator.py` uses it for 1040NR and cover sheet defaults. `ExportButton.tsx` uses `new Date().getFullYear() - 1` for the download filename. v1.0.0.0 (2026-03-29)
+
+---
+
+## TODO-21: Visual PDF Verification Test
+
+**What:** Add a golden-file test that generates a PDF against the actual IRS f1040nr_2024.pdf template with known input values, then reads the output with pdfplumber and asserts key values appear in the expected regions. Same for f8843.
+
+**Why:** Current tests verify field mappings structurally (T01-T05) and error handling (T06-T07), but no test generates a PDF and reads it back. If pypdf silently fills the wrong field or skips a page, the tests won't catch it. This is the highest-confidence gap in the export feature.
+
+**Pros:** Catches silent field-placement bugs. Golden-file approach makes regressions visible in diff.
+
+**Cons:** Requires pdfplumber as test dependency. Golden files need updating when IRS PDFs change.
+
+**Context:** Flagged by /autoplan (2026-03-28) in both CEO and Eng phases. Cross-phase theme.
+
+**Effort:** M (human: ~3 hours / CC: ~20 min)
+
+**Priority:** P2 — important for production confidence; not blocking hackathon demo.
+
+**Depends on / blocked by:** Nothing (IRS template PDFs already in `backend/static/forms/`).
+
+---
+
+## TODO-22: Strengthen Legal Disclaimer + User Acknowledgment Gate
+
+**What:** Before the ExportButton triggers PDF download: (1) strengthen the cover sheet disclaimer from 8pt italic grey to a visible block, (2) add a one-time acknowledgment checkbox ("I understand this is a filing assistance tool, not professional tax advice. I will review all values before mailing."), (3) consider adding a DRAFT watermark to generated PDFs that the user must remove or acknowledge.
+
+**Why:** Tax-cellent generates mailable IRS tax returns. Under IRC 7701(a)(36), a tool that prepares tax returns for compensation may be considered a "tax return preparer" with associated liability. Even as a free tool, one incorrectly filled form traced to stale field mappings creates product liability. The current disclaimer is minimal (2 lines, 8pt italic grey at bottom of cover sheet).
+
+**Pros:** Reduces legal exposure. Builds user trust (they know to review before mailing). Standard practice for tax software.
+
+**Cons:** Adds friction to the download flow. May reduce conversion for quick-and-done users. Legal review costs money.
+
+**Context:** Flagged by /autoplan CEO subagent (2026-03-28) as critical finding. Pre-launch blocker for any public distribution.
+
+**Effort:** S (human: ~2 hours / CC: ~15 min for code; legal review is separate)
+
+**Priority:** P1 — pre-launch blocker for public distribution. OK for hackathon demo as-is.
+
+**Depends on / blocked by:** Nothing (code-side). Legal review is external.
+
+---
+
+## TODO-23: Integration Test for _extract_step_amount
+
+**What:** Add integration tests that exercise `_extract_step_amount()` in `form_generator.py:332` with known `CalculationStep` outputs from the tax engine. Verify that the regex parsing produces correct numeric values for: 1042-S income, Ch3/Ch4 withholding, taxable income, and computed tax amount.
+
+**Why:** `_extract_step_amount` parses dollar amounts from display strings using regex `\$?([\d,]+(?:\.\d{1,2})?)`. This couples PDF generation to the display format of `CalculationStep.output_value`. If step labels or output formats change, 1040NR gets wrong values silently. Primary fields (wages, gross_income, withholding) use TaxReport directly, but derived fields depend on this fragile path.
+
+**Effort:** S (human: ~1 hour / CC: ~10 min)
+
+**Priority:** P2 — mitigates fragile coupling; ideally replaced by typed TaxReport fields long-term.
+
+**Depends on / blocked by:** Nothing.
+
+---
+
+## TODO-24: Combined W-2 + NEC Filer 1040NR Integration Test
+
+**What:** Add an integration test for the `/api/forms/package` endpoint that exercises the combined W-2 + 1099-NEC filer path. Create a TaxReport with both `wages` and `gross_income` populated, generate the tax package, and verify the 1040NR fills both the wages line (1a) and the NEC income line (2).
+
+**Why:** No test currently exercises the combined income path. The `_build_1040nr_field_values` function branches on `report.wages` and `report.gross_income` independently, but the interaction of both being present hasn't been verified end-to-end.
+
+**Effort:** S (human: ~1 hour / CC: ~10 min)
+
+**Priority:** P2 — edge case that affects dual-income NRA filers (OPT students with side gigs).
+
+**Depends on / blocked by:** Nothing.

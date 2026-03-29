@@ -44,7 +44,7 @@ export function StepBar({ current }: { current: number }) {
             </div>
             {/* Label */}
             <span
-              className="hidden md:block text-xs font-medium tracking-wide whitespace-nowrap"
+              className="text-[10px] md:text-xs font-medium tracking-wide whitespace-nowrap"
               style={{
                 color:
                   i === current
