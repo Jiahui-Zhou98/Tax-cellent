@@ -26,6 +26,7 @@ from __future__ import annotations
 import io
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -37,6 +38,7 @@ from app.constants.form_8843_fields import (
     EXPECTED_FIELDS,  # default (2025) — kept for backward compat
 )
 import app.constants.form_1040nr_fields as _nr_fields
+from app.constants.tax_constants import CURRENT_TAX_YEAR
 from app.schemas.document import TaxReport
 from app.schemas.form_8843 import Form8843Data
 
@@ -328,6 +330,26 @@ def _get_1040nr_template(year: int):
     return reader, has_acroform
 
 
+def _extract_step_amount(steps: list, label_keyword: str) -> Optional[float]:
+    """Scan calculation_steps for the LAST step whose label contains label_keyword.
+
+    Parses the first ``$N,NNN.NN`` or plain number from ``output_value``.
+    Returns ``None`` when no matching step exists or parsing fails.
+    Using the last match ensures that summary steps in combined calculators
+    (which appear after per-source steps with the same label) take precedence.
+    """
+    result: Optional[float] = None
+    for step in steps:
+        if label_keyword.lower() in step.label.lower():
+            m = re.search(r"\$?([\d,]+(?:\.\d{1,2})?)", step.output_value)
+            if m:
+                try:
+                    result = float(m.group(1).replace(",", ""))
+                except ValueError:
+                    pass
+    return result
+
+
 def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     """Map TaxReport fields to the semantic keys used in FIELD_MAP_1040NR_*."""
     d8843 = report.form_8843_data
@@ -374,6 +396,59 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
         if report.treaty_country:
             values["treaty_country"] = report.treaty_country
         values["treaty_amount_exempt"] = f"{report.treaty_exempt_amount:.2f}"
+
+    # ── 1042-S income → Line 8 (other income) ─────────────────────────────
+    # The combined/1042-S paths include ch3 income that has no dedicated line
+    # (wages → Line 1a, NEC → Line 2, 1042-S → Line 8 "other income").
+    income_1042s = _extract_step_amount(
+        report.calculation_steps, "Chapter 3 Gross Income"
+    ) or _extract_step_amount(
+        report.calculation_steps, "1042-S Chapter 3 Income"
+    )
+    if income_1042s and income_1042s > 0:
+        values["total_income_line_8"] = f"{income_1042s:.2f}"
+
+    # ── 1042-S withholding → Line 25c (other withholding) ─────────────────
+    # compute_report_extras() only captures W-2 or NEC withholding; ch3/ch4
+    # withholding must be extracted from calculation_steps here.
+    ch3_wh = _extract_step_amount(
+        report.calculation_steps, "Chapter 3 Federal Tax Withheld"
+    ) or _extract_step_amount(
+        report.calculation_steps, "1042-S Chapter 3 Withheld"
+    )
+    ch4_wh = _extract_step_amount(
+        report.calculation_steps, "Chapter 4 Federal Tax Withheld"
+    ) or _extract_step_amount(
+        report.calculation_steps, "1042-S Chapter 4 Withheld"
+    )
+    total_1042s_wh = (ch3_wh or 0.0) + (ch4_wh or 0.0)
+    if total_1042s_wh > 0:
+        values["withholding_other"] = f"{total_1042s_wh:.2f}"
+        # Recalculate total_withholding to include 1042-S portion
+        existing_wh = float(values.get("total_withholding") or 0)
+        values["total_withholding"] = f"{existing_wh + total_1042s_wh:.2f}"
+
+    # ── Line 15: Taxable Income ────────────────────────────────────────────
+    taxable_income = _extract_step_amount(report.calculation_steps, "Taxable Income")
+    if taxable_income is not None and taxable_income > 0:
+        values["taxable_income"] = f"{taxable_income:.2f}"
+
+    # ── Line 16: Tax on taxable income ────────────────────────────────────
+    # "Total Tax Liability" step (NEC/COMBINED) includes SE tax; fall back to
+    # "Federal Income Tax" step for the simpler W-2 / 1042-S paths.
+    tax_amount = _extract_step_amount(
+        report.calculation_steps, "Total Tax Liability"
+    ) or _extract_step_amount(
+        report.calculation_steps, "Federal Income Tax"
+    )
+    if tax_amount is not None and tax_amount > 0:
+        values["tax"] = f"{tax_amount:.2f}"
+
+    # ── Lines 36a / 37: Refund or Amount Owed ─────────────────────────────
+    if report.estimated_outcome == "refund" and report.estimated_amount:
+        values["refund_line_36a"] = f"{report.estimated_amount:.2f}"
+    elif report.estimated_outcome == "owe" and report.estimated_amount:
+        values["amount_owed_line_37"] = f"{report.estimated_amount:.2f}"
 
     return values
 
@@ -491,7 +566,7 @@ def generate_1040nr(report: TaxReport, year: Optional[int] = None) -> bytes:
             "At least one income source is required to generate Form 1040NR."
         )
 
-    tax_year = year or 2024  # default to 2024; update annually
+    tax_year = year or CURRENT_TAX_YEAR
 
     try:
         reader, has_acroform = _get_1040nr_template(tax_year)
@@ -567,7 +642,7 @@ def generate_cover_sheet_package(report: TaxReport) -> bytes:
     name = ""
     if d8843:
         name = f"{d8843.first_name} {d8843.last_name}".strip()
-    tax_year = d8843.tax_year if d8843 else 2024
+    tax_year = d8843.tax_year if d8843 else CURRENT_TAX_YEAR
 
     # Intro
     c.setFont("Helvetica", 11)

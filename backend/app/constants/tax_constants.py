@@ -16,3 +16,9 @@ See CLAUDE.md for sync maintenance instructions.
 #   Zero-income path: ZeroIncomeStep shows "Coming soon" for F-2/J-2 only (household
 #   bundling deferred; each dependent needs their own Form 8843).
 NRA_VISA_TYPES: list[str] = ["F-1", "F-2", "J-1", "J-2", "M-1", "M-2", "Q"]
+
+# The tax year for which forms are being filed (filing in 2026 for tax year 2025).
+# Update this each January when the new filing season begins.
+# Used by: form_generator.py (1040NR + cover sheet defaults), ExportButton.tsx (filename).
+from datetime import date as _date
+CURRENT_TAX_YEAR: int = _date.today().year - 1
