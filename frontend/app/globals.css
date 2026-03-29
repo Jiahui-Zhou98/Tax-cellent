@@ -40,6 +40,15 @@ body {
   animation: pulse-glow 1.8s ease-in-out infinite;
 }
 
+/* Focus ring for keyboard accessibility — applied to all inputs/selects/textareas
+   that use inputStyle (which no longer sets outline: none). WCAG 2.1 §2.4.7. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.55);
+  outline-offset: 2px;
+}
+
 /* Form 843 PDF print isolation */
 @media print {
   body * { visibility: hidden; }

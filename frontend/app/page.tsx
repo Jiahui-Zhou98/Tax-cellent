@@ -45,8 +45,8 @@ export default function Home() {
   if (zeroIncomePath) {
     return (
       <div>
-        <DeadlineBanner visaType={visaType} />
-        <div className="max-w-xl mx-auto px-4 py-6">
+        <DeadlineBanner visaType={visaType} hasIncome={false} />
+        <div className="animate-fade-in">
           <ZeroIncomeStep
             onBack={() => setZeroIncomePath(false)}
             prefill={institutionPrefill}

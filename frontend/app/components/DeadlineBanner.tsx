@@ -18,8 +18,11 @@
 const NRA_VISAS = new Set(["F-1", "J-1", "F1", "J1", "OPT", "CPT", "H-1B", "other"]);
 const DOMESTIC_VISAS = new Set(["US_CITIZEN", "GREEN_CARD", "RESIDENT_ALIEN"]);
 
-// Returns the relevant deadline date for the given visa type.
-function getDeadline(visaType: string): { date: Date; label: string; note: string } {
+// Returns the relevant deadline date for the given visa type and income status.
+function getDeadline(
+  visaType: string,
+  hasIncome: boolean,
+): { date: Date; label: string; note: string } {
   const year = new Date().getFullYear();
 
   if (!visaType || DOMESTIC_VISAS.has(visaType)) {
@@ -31,9 +34,15 @@ function getDeadline(visaType: string): { date: Date; label: string; note: strin
   }
 
   if (NRA_VISAS.has(visaType)) {
-    // NRAs with US wages use Apr 15; without wages use Jun 15.
-    // We default to Apr 15 as the safe conservative choice since we don't
-    // know at this point whether wages are present.
+    if (!hasIncome) {
+      // Form 8843 only (no US-source income) → June 15 deadline.
+      return {
+        date: new Date(`${year}-06-15`),
+        label: "June 15",
+        note: "Form 8843 filing deadline (NRA with no US-source income)",
+      };
+    }
+    // NRA with US-source income → April 15 (Form 1040-NR).
     return {
       date: new Date(`${year}-04-15`),
       label: "April 15",
@@ -56,8 +65,14 @@ function daysUntil(target: Date): number {
   return Math.ceil((t.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function DeadlineBanner({ visaType }: { visaType?: string }) {
-  const { date, label, note } = getDeadline(visaType ?? "");
+export function DeadlineBanner({
+  visaType,
+  hasIncome = true,
+}: {
+  visaType?: string;
+  hasIncome?: boolean;
+}) {
+  const { date, label, note } = getDeadline(visaType ?? "", hasIncome);
   const days = daysUntil(date);
 
   // Don't show banner if deadline has passed or more than 60 days away

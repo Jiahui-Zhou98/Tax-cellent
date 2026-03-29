@@ -16,7 +16,8 @@ import { NRA_VISA_TYPES } from "../lib/constants";
 import { inputStyle, glowBtn } from "../styles";
 import { SectionCard } from "./SectionCard";
 
-const CURRENT_YEAR = 2025;
+// Tax year = previous calendar year (Form 8843 for 2025 is filed in 2026, etc.)
+const CURRENT_YEAR = new Date().getFullYear() - 1;
 
 const TIN_OPTIONS = [
   { value: "ssn",         label: "Social Security Number (SSN)" },
@@ -153,6 +154,18 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* Breadcrumb — path context for zero-income fork */}
+      <nav aria-label="Path" className="flex items-center gap-1.5 text-xs font-mono">
+        <button
+          onClick={onBack}
+          className="text-slate-600 hover:text-cyan-400 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-500 rounded"
+        >
+          Upload
+        </button>
+        <span className="text-slate-700">›</span>
+        <span className="text-slate-400">Form 8843</span>
+      </nav>
+
       <div>
         <h2 className="text-2xl font-semibold text-white tracking-tight">Form 8843 — Zero Income</h2>
         <p className="text-slate-500 text-sm mt-1">
@@ -513,7 +526,7 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
           onClick={handleDownload}
           disabled={loading || !firstName.trim() || !lastName.trim()}
           className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40"
-          style={loading ? { background: "#22d3ee", opacity: 0.6 } : { background: "#22d3ee", color: "#0d1424", ...glowBtn() }}
+          style={loading ? { background: "#2563eb", opacity: 0.6 } : { background: "#2563eb", color: "#ffffff", ...glowBtn() }}
         >
           {loading
             ? "Generating PDF…"
