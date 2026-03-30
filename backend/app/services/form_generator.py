@@ -706,13 +706,18 @@ def generate_cover_sheet_package(report: TaxReport) -> bytes:
     line("Check with your university's ISSO or visit your state's tax website.")
     line("Many universities offer free state return help through VITA or Glacier Tax Prep.")
 
-    # Disclaimer
-    y -= 10
-    c.setFont("Helvetica-Oblique", 8)
-    c.setFillColor(colors.grey)
-    c.drawString(72, y, "Tax-cellent provides tax filing assistance tools, not professional tax advice.")
-    y -= 11
-    c.drawString(72, y, "When in doubt, consult a licensed tax professional or your university's ISSO.")
+    # Disclaimer — visible block, not fine print
+    y -= 16
+    c.setFillColor(colors.HexColor("#fef3c7"))
+    c.rect(60, y - 52, width - 120, 60, fill=True, stroke=False)
+    c.setFillColor(colors.HexColor("#92400e"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(72, y - 6, "IMPORTANT DISCLAIMER")
+    c.setFont("Helvetica", 8)
+    c.drawString(72, y - 19, "Tax-cellent is a tax filing assistance tool. It is NOT a substitute for professional tax advice.")
+    c.drawString(72, y - 30, "You are responsible for reviewing every value on these forms before signing and mailing.")
+    c.drawString(72, y - 41, "Tax-cellent makes no guarantee of accuracy. When in doubt, consult a licensed tax professional")
+    c.drawString(72, y - 52, "or your university's International Students & Scholars Office (ISSO).")
 
     c.save()
     buf.seek(0)
