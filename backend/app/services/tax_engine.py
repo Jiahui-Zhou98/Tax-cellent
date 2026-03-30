@@ -1199,12 +1199,13 @@ def _calculate_combined(
     Combined income:
       - box_1_wages               → W-2 wages (ECI)
       - box_1_nonemployee_compensation → 1099-NEC gross (ECI, subject to SE tax)
+      - box_1_interest_income     → 1099-INT interest (ordinary income)
       - gross_income_ch3          → 1042-S Chapter 3 income (ECI)
       - box_1_royalties + box_3_other_income → 1099-MISC (other income)
 
     Combined withholding:
       - box_2_federal_tax_withheld → W-2 Box 2 (also 1099-MISC Box 4, shared key)
-      - box_4_federal_tax_withheld → 1099-NEC Box 4
+      - box_4_federal_tax_withheld → 1099-NEC Box 4 / 1099-INT Box 4
       - ch3_withholding            → 1042-S Box 7
       - ch4_withholding            → 1042-S Box 8
 
@@ -1225,12 +1226,13 @@ def _calculate_combined(
     wages = _parse_float(field_val("box_1_wages")) or 0.0
     nec_gross = _parse_float(field_val("box_1_nonemployee_compensation")) or 0.0
     ch3_income = _parse_float(field_val("gross_income_ch3")) or 0.0
+    interest_income = _parse_float(field_val("box_1_interest_income")) or 0.0
     misc_royalties = _parse_float(field_val("box_1_royalties")) or 0.0
     misc_other = _parse_float(field_val("box_3_other_income")) or 0.0
     misc_income = misc_royalties + misc_other
 
     # At least one income source must be present
-    if wages == 0.0 and nec_gross == 0.0 and ch3_income == 0.0 and misc_income == 0.0:
+    if wages == 0.0 and nec_gross == 0.0 and ch3_income == 0.0 and interest_income == 0.0 and misc_income == 0.0:
         return [], "unknown", None
 
     # NEC: apply business expenses (from user_context or confirmed field)
@@ -1290,7 +1292,18 @@ def _calculate_combined(
         ))
         n += 1
 
-    # --- Step 3b: 1099-MISC income (if present) ---
+    # --- Step 3b: 1099-INT interest income (if present) ---
+    if interest_income > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-INT",
+            label="1099-INT Interest Income (Combined)",
+            rule_reference="Form 1099-INT, Box 1",
+            input_value="Sum of all 1099-INT Box 1",
+            output_value=f"${interest_income:,.2f}",
+        ))
+        n += 1
+
+    # --- Step 3c: 1099-MISC income (if present) ---
     if misc_income > 0:
         steps.append(CalculationStep(
             step_number=n, source_form="1099-MISC",
@@ -1302,7 +1315,7 @@ def _calculate_combined(
         n += 1
 
     # --- Step 4: Total ECI (effectively connected income) ---
-    total_eci = round(wages + nec_net + ch3_income + misc_income, 2)
+    total_eci = round(wages + nec_net + ch3_income + interest_income + misc_income, 2)
     steps.append(CalculationStep(
         step_number=n, source_form="COMBINED",
         label="Total Effectively Connected Income",
@@ -1311,6 +1324,7 @@ def _calculate_combined(
             f"${wages:,.2f} W-2" if wages else None,
             f"${nec_net:,.2f} NEC net" if nec_gross else None,
             f"${ch3_income:,.2f} 1042-S" if ch3_income else None,
+            f"${interest_income:,.2f} INT" if interest_income else None,
             f"${misc_income:,.2f} MISC" if misc_income else None,
         ])),
         output_value=f"${total_eci:,.2f}",
