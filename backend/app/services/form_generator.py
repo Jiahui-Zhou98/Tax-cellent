@@ -108,22 +108,30 @@ def _build_field_values(data: Form8843Data) -> dict[str, str]:
 
     prior_years_str = ", ".join(str(y) for y in sorted(data.exempt_prior_years)) if data.exempt_prior_years else ""
 
+    # Combine institution name, city, state into one line for Part III Line 9
+    inst_parts = [p for p in [
+        data.institution_name,
+        data.institution_city,
+        data.institution_state,
+    ] if p]
+    institution_combined = ", ".join(inst_parts)
+
+    # Signature block: name + date on one line
+    sign_line = f"{full_name_sign}    {data.tax_year}-04-15"
+
     return {
         "last_name":              data.last_name,
         "first_name_mi":          data.first_name,
         "tin":                    tin_display,
-        "visa_type":              data.visa_type,
+        "visa_type":              f"{data.visa_type}   Entered: {data.first_us_entry_date or ''}",
         "date_arrived":           data.first_us_entry_date or "",
         "days_us_current":        str(data.days_in_us_current_year) if data.days_in_us_current_year is not None else "",
-        "institution_name":       data.institution_name or "",
-        "institution_city":       data.institution_city or "",   # separate city field
-        "institution_state":      data.institution_state or "",  # separate state field
+        "institution_name":       institution_combined,
+        "director_name":          "",  # Line 10 (director) — left blank unless provided
         "prior_exempt_years":     prior_years_str,
         "exchange_program":       data.exchange_program_name or "",
         "sponsor_name":           data.sponsor_name or "",
-        "sponsor_address":        data.sponsor_address or "",
-        "taxpayer_name_sign":     full_name_sign,
-        "sign_date":              f"{data.tax_year}-04-15",
+        "taxpayer_name_sign":     sign_line,
     }
 
 
