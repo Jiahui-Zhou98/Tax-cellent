@@ -36,6 +36,11 @@ def ensure_provider_configured(provider: str | LLMProvider) -> None:
         raise ValueError("Gemini is not configured. Set GEMINI_API_KEY in backend/.env.")
 
 
+def get_gemini_key(inline_key: str | None = None) -> str | None:
+    """Resolve the Gemini API key. Inline key takes precedence over env config."""
+    return inline_key or settings.GEMINI_API_KEY
+
+
 def _flatten_messages(messages: list[dict]) -> str:
     sections: list[str] = []
     role_labels = {"system": "System", "developer": "System", "user": "User", "assistant": "Assistant"}
