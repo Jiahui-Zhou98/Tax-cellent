@@ -1,9 +1,11 @@
+import asyncio
 import logging
 import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from typing import Optional
 
 from app.core.config import settings
 from app.schemas.document import OCROutput, SessionState
@@ -12,7 +14,9 @@ from app.services.extraction_service import (
     extract_fields_structured,
     extract_fields_llm,
     extract_fields,
+    merge_extractions,
 )
+from app.services.ai_extractor import extract_with_ai
 from app.storage.session_store import save_session
 
 logger = logging.getLogger(__name__)
@@ -22,7 +26,11 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp"}
 
 
 @router.post("/upload", response_model=OCROutput)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    ai_api_key: Optional[str] = Form(None),
+    ai_model: Optional[str] = Form(None),
+):
     # Validate
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -39,7 +47,7 @@ async def upload_document(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # Extract text + structured JSON
+    # Extract text + structured JSON (opendataloader pipeline)
     try:
         raw_text, parsed_json, page_count = await extract_structured(file_path)
     except Exception as e:
@@ -66,6 +74,24 @@ async def upload_document(file: UploadFile = File(...)):
             logger.warning("upload: legacy LLM failed (%s), falling back to regex", e)
             field_candidates = extract_fields(raw_text)
             logger.info("upload: regex fallback used (%d fields)", len(field_candidates))
+
+    # AI extraction (Gemini Vision) — runs if API key provided, never blocks upload
+    ai_error_msg = None
+    if ai_api_key and ext == ".pdf":
+        try:
+            ai_fields = await extract_with_ai(
+                file_path,
+                api_key=ai_api_key,
+                model=ai_model or "gemini-2.0-flash",
+            )
+            if ai_fields:
+                field_candidates = merge_extractions(field_candidates, ai_fields)
+                logger.info("upload: AI extraction merged (%d AI fields)", len(ai_fields))
+            else:
+                logger.info("upload: AI extraction returned empty — using regex only")
+        except Exception as e:
+            ai_error_msg = str(e)
+            logger.warning("upload: AI extraction failed (%s) — using regex only", e)
 
     ocr_output = OCROutput(
         document_id=document_id,
