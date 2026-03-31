@@ -19,6 +19,8 @@ const AI_UPLOAD_HINTS = [
 ];
 
 const AI_KEY_STORAGE = "tax_ai_gemini_key";
+// Also check the key stored by SettingsStep (different sessionStorage key)
+const SETTINGS_KEY_STORAGE = "tax_api_key_gemini";
 
 export function UploadStep({
   onUploaded,
@@ -33,10 +35,15 @@ export function UploadStep({
   const [aiKey, setAiKey] = useState("");
   const [showAiBanner, setShowAiBanner] = useState(true);
 
-  // Load saved key from sessionStorage on mount
+  // Load saved key from sessionStorage on mount — check both Upload and Settings keys
   useEffect(() => {
-    const saved = sessionStorage.getItem(AI_KEY_STORAGE);
-    if (saved) setAiKey(saved);
+    const saved = sessionStorage.getItem(AI_KEY_STORAGE)
+      || sessionStorage.getItem(SETTINGS_KEY_STORAGE);
+    if (saved) {
+      setAiKey(saved);
+      // Sync to Upload key so it persists for next time
+      sessionStorage.setItem(AI_KEY_STORAGE, saved);
+    }
   }, []);
 
   const hints = aiKey ? AI_UPLOAD_HINTS : UPLOAD_HINTS;

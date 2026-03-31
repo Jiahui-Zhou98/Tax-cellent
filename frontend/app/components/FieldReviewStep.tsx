@@ -220,7 +220,28 @@ export function FieldReviewStep({
         </button>
       </div>
 
-      {/* AI verification summary */}
+      {/* AI verification summary or nudge */}
+      {!hasAiResults && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3"
+          style={{
+            background: "rgba(99,102,241,0.05)",
+            border: "1px solid rgba(99,102,241,0.15)",
+          }}
+        >
+          <span className="text-lg opacity-60">{"\u2139"}</span>
+          <div className="text-xs text-slate-500">
+            <span className="text-indigo-400 font-medium">No AI verification.</span>{" "}
+            Enter a Gemini API key on the Upload step for dramatically more accurate extraction.
+            <button
+              onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
+              className="ml-2 text-indigo-400 hover:text-indigo-300 underline"
+            >
+              Re-upload with AI
+            </button>
+          </div>
+        </div>
+      )}
       {hasAiResults && (
         <div
           className="rounded-xl p-4 flex items-center gap-3"
