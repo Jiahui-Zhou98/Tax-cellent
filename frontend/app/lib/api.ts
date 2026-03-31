@@ -116,9 +116,15 @@ export interface SessionState {
   status: string;
 }
 
-export async function uploadDocument(file: File): Promise<OCROutput> {
+export async function uploadDocument(
+  file: File,
+  aiApiKey?: string,
+  aiModel?: string,
+): Promise<OCROutput> {
   const form = new FormData();
   form.append("file", file);
+  if (aiApiKey) form.append("ai_api_key", aiApiKey);
+  if (aiModel) form.append("ai_model", aiModel);
   const res = await fetch(`${API_BASE}/api/upload`, { method: "POST", body: form });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
