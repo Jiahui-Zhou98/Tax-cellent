@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { uploadDocument, type OCROutput } from "../lib/api";
+import { inputStyle } from "../styles";
 
 const UPLOAD_HINTS = [
   "Extracting text from document\u2026",
