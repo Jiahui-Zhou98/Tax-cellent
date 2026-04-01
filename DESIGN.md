@@ -1,6 +1,8 @@
 # Tax-cellent Design System
 
-Dark-terminal aesthetic. Privacy-first product for tax document review. Every visual decision reinforces trust, precision, and local execution.
+Apple-inspired light UI. Privacy-first product for tax document review. Every visual decision reinforces trust, precision, and local execution.
+
+> **Note:** The original dark-terminal aesthetic (deep navy, cyan accent) was replaced in v1.x with an Apple-style light theme. The CSS variables below reflect the current design. See `frontend/app/globals.css` for the live token definitions and `frontend/app/styles.ts` for shared style objects.
 
 ---
 
