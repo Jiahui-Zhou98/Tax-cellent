@@ -114,12 +114,14 @@ export function UploadStep({
         <div
           className="rounded-xl p-4"
           style={{
-            background: "rgba(99,102,241,0.06)",
-            border: "1px solid rgba(99,102,241,0.2)",
+            background: "rgba(0,113,227,0.05)",
+            border: "1px solid rgba(0,113,227,0.18)",
           }}
         >
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-indigo-400">AI-Powered Extraction</p>
+            <p className="text-sm font-medium" style={{ color: "var(--color-accent)" }}>
+              AI-Powered Extraction
+            </p>
             <button
               onClick={() => setShowAiBanner(false)}
               className="cursor-pointer px-2 py-2 text-xs text-slate-600 hover:text-slate-400"
