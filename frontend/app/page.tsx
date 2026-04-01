@@ -193,7 +193,7 @@ export default function Home() {
           className="flex-1 overflow-y-auto p-6 md:p-10"
           style={{ background: "var(--color-bg)" }}
         >
-          {renderContent()}
+          <div className="mx-auto w-full max-w-3xl">{renderContent()}</div>
         </main>
       </div>
     </div>
