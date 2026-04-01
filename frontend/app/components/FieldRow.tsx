@@ -54,6 +54,16 @@ export const FIELD_LABELS: Record<string, string> = {
 export const confColor = (c: number) =>
   c >= 0.8 ? "#34C759" : c >= 0.5 ? "#FF9F0A" : "#FF3B30";
 
+const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
+  ai_regex_agree:    { label: "AI verified", color: "#34d399" },
+  ai_regex_disagree: { label: "AI differs", color: "#f87171" },
+  ai:                { label: "AI only", color: "#818cf8" },
+  ocr:               { label: "OCR", color: "#64748b" },
+  user_confirmed:    { label: "confirmed", color: "#64748b" },
+  user_edited:       { label: "edited", color: "#22d3ee" },
+  missing:           { label: "", color: "#475569" },
+};
+
 export function FieldRow({
   fieldKey,
   field,
@@ -106,9 +116,23 @@ export function FieldRow({
             ) : (
               <span className="text-xs font-mono" style={{ color: "var(--color-text-secondary)", opacity: 0.5 }}>not detected</span>
             )}
-            <span className="ml-auto text-xs font-mono" style={{ color: "var(--color-text-secondary)", opacity: 0.5 }} aria-hidden="true">
-              {field.source !== "missing" ? field.source : ""}
-            </span>
+            {field.source && field.source !== "missing" && (
+              <span
+                className="ml-auto text-xs font-mono px-1.5 py-0.5 rounded"
+                style={{
+                  color: SOURCE_LABELS[field.source]?.color ?? "var(--color-text-secondary)",
+                  background: field.source === "ai_regex_agree"
+                    ? "rgba(52,211,153,0.1)"
+                    : field.source === "ai_regex_disagree"
+                    ? "rgba(248,113,113,0.1)"
+                    : field.source === "ai"
+                    ? "rgba(129,140,248,0.1)"
+                    : "transparent",
+                }}
+              >
+                {SOURCE_LABELS[field.source]?.label ?? field.source}
+              </span>
+            )}
           </div>
           <input
             type="text"

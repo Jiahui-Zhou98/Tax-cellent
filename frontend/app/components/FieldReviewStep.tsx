@@ -196,6 +196,12 @@ export function FieldReviewStep({
   const reviewFlags = Object.entries(fields).filter(([, f]) => f.confidence < 0.6 && f.value);
   const otherKeys = Object.keys(fields).filter((k) => !groupedKeys.has(k) && k !== "raw_note");
 
+  // AI verification stats
+  const aiVerified = Object.values(fields).filter((f) => f.source === "ai_regex_agree").length;
+  const aiDisagree = Object.values(fields).filter((f) => f.source === "ai_regex_disagree").length;
+  const aiOnly = Object.values(fields).filter((f) => f.source === "ai").length;
+  const hasAiResults = aiVerified + aiDisagree + aiOnly > 0;
+
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
@@ -218,6 +224,49 @@ export function FieldReviewStep({
           ← Re-upload
         </button>
       </div>
+
+      {/* AI verification summary or nudge */}
+      {!hasAiResults && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3"
+          style={{
+            background: "rgba(99,102,241,0.05)",
+            border: "1px solid rgba(99,102,241,0.15)",
+          }}
+        >
+          <span className="text-lg opacity-60">{"\u2139"}</span>
+          <div className="text-xs text-slate-500">
+            <span className="text-indigo-400 font-medium">No AI verification.</span>{" "}
+            Enter a Gemini API key on the Upload step for dramatically more accurate extraction.
+            <button
+              onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
+              className="ml-2 text-indigo-400 hover:text-indigo-300 underline"
+            >
+              Re-upload with AI
+            </button>
+          </div>
+        </div>
+      )}
+      {hasAiResults && (
+        <div
+          className="rounded-xl p-4 flex items-center gap-3"
+          style={{
+            background: aiDisagree > 0
+              ? "rgba(251,191,36,0.06)"
+              : "rgba(52,211,153,0.06)",
+            border: `1px solid ${aiDisagree > 0 ? "rgba(251,191,36,0.2)" : "rgba(52,211,153,0.2)"}`,
+          }}
+        >
+          <span className="text-lg">{aiDisagree > 0 ? "\u26A0" : "\u2713"}</span>
+          <div className="text-xs text-slate-400">
+            <span className="font-medium text-emerald-400">{aiVerified} fields AI-verified</span>
+            {aiOnly > 0 && <span className="ml-2 text-indigo-400">+{aiOnly} AI-only</span>}
+            {aiDisagree > 0 && (
+              <span className="ml-2 text-amber-400">{aiDisagree} disagreements (review below)</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {reviewFlags.length > 0 && (
         <SectionCard title="Review Flags — Low Confidence" variant="danger">

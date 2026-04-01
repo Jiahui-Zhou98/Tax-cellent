@@ -36,6 +36,11 @@ def ensure_provider_configured(provider: str | LLMProvider) -> None:
         raise ValueError("Gemini is not configured. Set GEMINI_API_KEY in backend/.env.")
 
 
+def get_gemini_key(inline_key: str | None = None) -> str | None:
+    """Resolve the Gemini API key. Inline key takes precedence over env config."""
+    return inline_key or settings.GEMINI_API_KEY
+
+
 def _flatten_messages(messages: list[dict]) -> str:
     sections: list[str] = []
     role_labels = {"system": "System", "developer": "System", "user": "User", "assistant": "Assistant"}
@@ -120,7 +125,7 @@ async def chat(
             "keep_alive": 0,          # unload model right after this call
             "options": {"temperature": temperature},
         }
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(url, json=payload)
             resp.raise_for_status()
             return resp.json()["message"]["content"]
@@ -141,7 +146,7 @@ async def chat(
         }
         if json_mode:
             payload["text"] = {"format": {"type": "json_object"}}
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/responses",
                 headers={
@@ -154,7 +159,7 @@ async def chat(
             return _extract_openai_output(resp.json())
 
     if provider == LLMProvider.ANTHROPIC.value:
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
@@ -176,7 +181,7 @@ async def chat(
         generation_config: dict = {"temperature": temperature}
         if json_mode:
             generation_config["responseMimeType"] = "application/json"
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                 params={"key": effective_gemini_key},

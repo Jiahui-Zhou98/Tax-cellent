@@ -14,6 +14,7 @@ import { useState } from "react";
 import { type Form8843Data, generate8843, bundleForms } from "../lib/api";
 import { NRA_VISA_TYPES } from "../lib/constants";
 import { inputStyle } from "../styles";
+import { US_UNIVERSITIES } from "../lib/universities";
 import { SectionCard } from "./SectionCard";
 
 // Tax year = previous calendar year (Form 8843 for 2025 is filed in 2026, etc.)
@@ -333,11 +334,26 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
             <input
               id="zi-inst-name"
               type="text"
+              list="university-list"
               placeholder="e.g. University of Michigan"
               value={instName}
-              onChange={(e) => setInstName(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setInstName(val);
+                // Auto-fill city/state when a known university is selected
+                const match = US_UNIVERSITIES.find(([name]) => name === val);
+                if (match) {
+                  setInstCity(match[1]);
+                  setInstState(match[2]);
+                }
+              }}
               style={inputStyle}
             />
+            <datalist id="university-list">
+              {US_UNIVERSITIES.map(([name]) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

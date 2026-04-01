@@ -349,3 +349,80 @@ def extract_fields(text: str) -> dict[str, FieldValue]:
                 confidence=1.0, source="ocr",
             ),
         }
+
+
+# ---------------------------------------------------------------------------
+# Dual extraction merge
+# ---------------------------------------------------------------------------
+
+def _parse_money(val: str) -> Optional[float]:
+    """Parse a dollar amount from a string, tolerant of formatting."""
+    if not val:
+        return None
+    cleaned = re.sub(r"[^\d.\-]", "", val)
+    try:
+        return float(cleaned)
+    except (ValueError, TypeError):
+        return None
+
+
+def _values_agree(regex_val: str, ai_val: str) -> bool:
+    """Check if two field values agree (money within $0.01, text case-insensitive)."""
+    # Try money comparison first
+    r_money = _parse_money(regex_val)
+    a_money = _parse_money(ai_val)
+    if r_money is not None and a_money is not None:
+        return abs(r_money - a_money) <= 0.01
+
+    # Text comparison: case-insensitive, whitespace-normalized
+    r_norm = " ".join(regex_val.strip().upper().split())
+    a_norm = " ".join(ai_val.strip().upper().split())
+    return r_norm == a_norm
+
+
+def merge_extractions(
+    regex_fields: dict[str, FieldValue],
+    ai_fields: dict[str, FieldValue],
+) -> dict[str, FieldValue]:
+    """Merge regex and AI extraction results with confidence comparison.
+
+    Merge rules:
+      BOTH_AGREE:     values match → use regex value, confidence=0.99
+      ONLY_REGEX:     AI has no value → keep regex value, confidence unchanged
+      AI_DISAGREES:   both have values but different → use AI, confidence=0.50
+      ONLY_AI:        regex missed it → use AI value, confidence=0.90
+    """
+    all_keys = set(regex_fields.keys()) | set(ai_fields.keys())
+    merged: dict[str, FieldValue] = {}
+
+    for key in all_keys:
+        r_fv = regex_fields.get(key)
+        a_fv = ai_fields.get(key)
+
+        if r_fv and a_fv:
+            # Both have values — compare
+            if _values_agree(r_fv.value, a_fv.value):
+                merged[key] = FieldValue(
+                    value=r_fv.value,
+                    confidence=0.99,
+                    source="ai_regex_agree",
+                )
+            else:
+                # AI disagrees — use AI value (more accurate), flag for review
+                merged[key] = FieldValue(
+                    value=a_fv.value,
+                    confidence=0.50,
+                    source="ai_regex_disagree",
+                )
+        elif r_fv:
+            # Only regex has value
+            merged[key] = r_fv
+        elif a_fv:
+            # Only AI has value
+            merged[key] = FieldValue(
+                value=a_fv.value,
+                confidence=0.90,
+                source="ai",
+            )
+
+    return merged

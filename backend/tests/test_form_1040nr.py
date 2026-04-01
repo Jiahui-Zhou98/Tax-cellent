@@ -177,3 +177,61 @@ def test_t10_cover_sheet_package_valid_pdf():
     report = _make_report()
     pdf = generate_cover_sheet_package(report)
     assert pdf.startswith(b"%PDF"), "Cover sheet package must be a valid PDF"
+
+
+# ---------------------------------------------------------------------------
+# T11–T15 — _extract_step_amount() integration tests (TODO-23)
+# ---------------------------------------------------------------------------
+
+from app.schemas.document import CalculationStep
+from app.services.form_generator import _extract_step_amount
+
+
+def _make_step(label: str, output_value: str, step_number: int = 1) -> CalculationStep:
+    return CalculationStep(
+        step_number=step_number,
+        label=label,
+        rule_reference="test",
+        input_value="test",
+        output_value=output_value,
+    )
+
+
+def test_t11_extract_step_amount_dollar_with_commas():
+    """Step with '$30,000.00' output → extracts 30000.0."""
+    steps = [_make_step("Federal Income Tax", "$30,000.00")]
+    result = _extract_step_amount(steps, "Federal Income Tax")
+    assert result == 30000.0
+
+
+def test_t12_extract_step_amount_zero_dollars():
+    """Step with '$0.00' output → extracts 0.0 (NOT None)."""
+    steps = [_make_step("Federal Income Tax", "$0.00")]
+    result = _extract_step_amount(steps, "Federal Income Tax")
+    assert result == 0.0
+    assert result is not None
+
+
+def test_t13_extract_step_amount_no_matching_step():
+    """No matching step → returns None."""
+    steps = [_make_step("Unrelated Label", "$500.00")]
+    result = _extract_step_amount(steps, "Federal Income Tax")
+    assert result is None
+
+
+def test_t14_extract_step_amount_multiple_matches_returns_last():
+    """Multiple matching steps → returns the LAST match."""
+    steps = [
+        _make_step("Federal Income Tax", "$1,000.00", step_number=1),
+        _make_step("Federal Income Tax", "$2,500.00", step_number=2),
+        _make_step("Federal Income Tax", "$7,777.00", step_number=3),
+    ]
+    result = _extract_step_amount(steps, "Federal Income Tax")
+    assert result == 7777.0
+
+
+def test_t15_extract_step_amount_no_dollar_in_output():
+    """Step with no dollar amount in output → returns None."""
+    steps = [_make_step("Federal Income Tax", "N/A — exempt")]
+    result = _extract_step_amount(steps, "Federal Income Tax")
+    assert result is None

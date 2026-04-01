@@ -4,6 +4,7 @@ import { useState } from "react";
 import { saveContext } from "../lib/api";
 import { NRA_VISA_TYPES } from "../lib/constants";
 import { inputStyle } from "../styles";
+import { US_UNIVERSITIES } from "../lib/universities";
 import { SectionCard } from "./SectionCard";
 
 const STATE_OPTIONS = [
@@ -307,11 +308,25 @@ export function ContextStep({
               <input
                 id="ctx-inst-name"
                 type="text"
+                list="ctx-university-list"
                 placeholder="e.g. University of Michigan"
                 value={instName}
-                onChange={(e) => setInstName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInstName(val);
+                  const match = US_UNIVERSITIES.find(([name]) => name === val);
+                  if (match) {
+                    setInstCity(match[1]);
+                    setInstState(match[2]);
+                  }
+                }}
                 style={inputStyle}
               />
+              <datalist id="ctx-university-list">
+                {US_UNIVERSITIES.map(([name]) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

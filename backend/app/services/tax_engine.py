@@ -18,7 +18,7 @@ Data flow:
 from typing import Literal, Optional, TypedDict
 from app.schemas.document import CalculationStep, ConfirmedFields, UserContext
 from app.schemas.form_8843 import Form8843Data
-from app.constants.tax_constants import NRA_VISA_TYPES
+from app.constants.tax_constants import CURRENT_TAX_YEAR, NRA_VISA_TYPES
 
 # ---------------------------------------------------------------------------
 # 2025 IRS constants
@@ -117,8 +117,7 @@ def _is_fica_exempt(visa_type: str, first_entry_year: Optional[str]) -> bool:
         return False
     try:
         entry_year = int(str(first_entry_year)[:4])
-        # Tax year 2025 filing
-        years_elapsed = 2025 - entry_year
+        years_elapsed = CURRENT_TAX_YEAR - entry_year
         return years_elapsed < FICA_EXEMPT_MAX_YEARS
     except (ValueError, TypeError):
         return False
@@ -161,7 +160,7 @@ def _determine_residency(user_context: Optional[UserContext]) -> str:
             return "NRA"  # no entry date → conservative NRA
         try:
             entry_year = int(str(entry_str)[:4])
-            years_elapsed = 2025 - entry_year
+            years_elapsed = CURRENT_TAX_YEAR - entry_year
             if years_elapsed < FICA_EXEMPT_MAX_YEARS:
                 return "NRA"
             # 5+ years: no longer an exempt individual; fall through to SPT
@@ -219,7 +218,7 @@ def _check_8843_eligibility(
 
     try:
         entry_year = int(str(entry_str)[:4])
-        years_elapsed = 2025 - entry_year  # calendar years since first entry
+        years_elapsed = CURRENT_TAX_YEAR - entry_year  # calendar years since first entry
     except (ValueError, TypeError):
         if residency == "RA":
             return "resident_alien_warning", 0
@@ -255,13 +254,13 @@ def _assemble_form_8843_data(
     _, exempt_years_count = _check_8843_eligibility(user_context)
 
     # Build list of prior years the individual was present as exempt individual.
-    # Example: entry 2022 → [2022, 2023, 2024] (3 prior years before 2025).
+    # Example: entry 2022, tax year 2025 → [2022, 2023, 2024] (3 prior years).
     exempt_prior_years: list[int] = []
     if user_context.first_us_entry_date:
         try:
             entry_year = int(str(user_context.first_us_entry_date)[:4])
-            # Years from entry up to (not including) current tax year 2025
-            prior_years = list(range(entry_year, 2025))
+            # Years from entry up to (not including) current tax year
+            prior_years = list(range(entry_year, CURRENT_TAX_YEAR))
             # Cap at how many were actually exempt (don't go past exempt_years_count)
             exempt_prior_years = prior_years[:exempt_years_count]
         except (ValueError, TypeError):
@@ -276,7 +275,7 @@ def _assemble_form_8843_data(
         institution_state=user_context.institution_state,
         exempt_prior_years=exempt_prior_years,
         has_income=has_income,
-        tax_year=2025,
+        tax_year=CURRENT_TAX_YEAR,
         tin_status="none",  # income-path callers may override from ConfirmedFields
     )
 
@@ -1100,6 +1099,98 @@ def _calculate_1042s(
     return steps, outcome, abs(balance)
 
 
+def _calculate_misc(
+    confirmed: ConfirmedFields,
+    user_context: Optional[UserContext] = None,
+) -> tuple[list[CalculationStep], str, Optional[float]]:
+    """Calculate federal tax for a standalone 1099-MISC filer.
+
+    Treats Box 3 (other income) as ordinary income on 1040-NR Line 8.
+    Box 1 (rents) and Box 2 (royalties) are not yet supported.
+    """
+    fields = confirmed.confirmed_fields
+    steps: list[CalculationStep] = []
+    n = 1
+
+    def field_val(name: str) -> Optional[str]:
+        fv = fields.get(name)
+        return fv.value if fv else None
+
+    other_income = _parse_float(field_val("box_3_other_income")) or 0.0
+    royalties = _parse_float(field_val("box_1_royalties")) or 0.0
+    misc_income = other_income + royalties
+
+    if misc_income == 0.0:
+        return [], "unknown", None
+
+    is_nra = _determine_residency(user_context) == "NRA"
+
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="1099-MISC Income (Box 2 Royalties + Box 3 Other)",
+        rule_reference="Form 1099-MISC, Boxes 2 & 3",
+        input_value="1099-MISC income",
+        output_value=f"${misc_income:,.2f}",
+    ))
+    n += 1
+
+    std_ded = 0.0 if is_nra else STANDARD_DEDUCTION_SINGLE_2025
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="Standard Deduction" if not is_nra else "No Standard Deduction (NRA)",
+        rule_reference="IRS Rev. Proc. 2024-40" if not is_nra else "IRS Pub. 519 Chapter 4",
+        input_value="NRA — no deduction" if is_nra else f"Single filer",
+        output_value=f"− ${std_ded:,.2f}",
+    ))
+    n += 1
+
+    taxable = max(0.0, misc_income - std_ded)
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="Taxable Income",
+        rule_reference="Form 1040-NR, Line 15",
+        input_value=f"${misc_income:,.2f} − ${std_ded:,.2f}",
+        output_value=f"${taxable:,.2f}",
+    ))
+    n += 1
+
+    federal_tax = _apply_brackets(taxable)
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="Federal Income Tax",
+        rule_reference="IRS 2025 Tax Table (Rev. Proc. 2024-40, Table 1)",
+        input_value=f"${taxable:,.2f} taxable income",
+        output_value=f"${federal_tax:,.2f}",
+    ))
+    n += 1
+
+    withheld = _parse_float(field_val("box_2_federal_tax_withheld")) or 0.0
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="Federal Tax Withheld (1099-MISC Box 4)",
+        rule_reference="Form 1099-MISC, Box 4",
+        input_value="1099-MISC withholding",
+        output_value=f"${withheld:,.2f}",
+    ))
+    n += 1
+
+    balance = withheld - federal_tax
+    outcome = "refund" if balance > 0 else ("owe" if balance < 0 else "balanced")
+    steps.append(CalculationStep(
+        step_number=n, source_form="1099-MISC",
+        label="Estimated Federal Balance",
+        rule_reference="Withholding − Tax",
+        input_value=f"${withheld:,.2f} − ${federal_tax:,.2f}",
+        output_value=f"{'Refund' if balance > 0 else 'Owe'}: ${abs(balance):,.2f}",
+    ))
+
+    if user_context and user_context.wants_state_estimate and user_context.state_code:
+        state_steps = _calculate_state_tax(misc_income, user_context.state_code)
+        steps.extend(state_steps)
+
+    return steps, outcome, abs(balance)
+
+
 def _calculate_combined(
     confirmed: ConfirmedFields,
     user_context: Optional[UserContext] = None,
@@ -1112,11 +1203,13 @@ def _calculate_combined(
     Combined income:
       - box_1_wages               → W-2 wages (ECI)
       - box_1_nonemployee_compensation → 1099-NEC gross (ECI, subject to SE tax)
+      - box_1_interest_income     → 1099-INT interest (ordinary income)
       - gross_income_ch3          → 1042-S Chapter 3 income (ECI)
+      - box_1_royalties + box_3_other_income → 1099-MISC (other income)
 
     Combined withholding:
-      - box_2_federal_tax_withheld → W-2 Box 2
-      - box_4_federal_tax_withheld → 1099-NEC Box 4
+      - box_2_federal_tax_withheld → W-2 Box 2 (also 1099-MISC Box 4, shared key)
+      - box_4_federal_tax_withheld → 1099-NEC Box 4 / 1099-INT Box 4
       - ch3_withholding            → 1042-S Box 7
       - ch4_withholding            → 1042-S Box 8
 
@@ -1137,9 +1230,13 @@ def _calculate_combined(
     wages = _parse_float(field_val("box_1_wages")) or 0.0
     nec_gross = _parse_float(field_val("box_1_nonemployee_compensation")) or 0.0
     ch3_income = _parse_float(field_val("gross_income_ch3")) or 0.0
+    interest_income = _parse_float(field_val("box_1_interest_income")) or 0.0
+    misc_royalties = _parse_float(field_val("box_1_royalties")) or 0.0
+    misc_other = _parse_float(field_val("box_3_other_income")) or 0.0
+    misc_income = misc_royalties + misc_other
 
     # At least one income source must be present
-    if wages == 0.0 and nec_gross == 0.0 and ch3_income == 0.0:
+    if wages == 0.0 and nec_gross == 0.0 and ch3_income == 0.0 and interest_income == 0.0 and misc_income == 0.0:
         return [], "unknown", None
 
     # NEC: apply business expenses (from user_context or confirmed field)
@@ -1199,8 +1296,30 @@ def _calculate_combined(
         ))
         n += 1
 
+    # --- Step 3b: 1099-INT interest income (if present) ---
+    if interest_income > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-INT",
+            label="1099-INT Interest Income (Combined)",
+            rule_reference="Form 1099-INT, Box 1",
+            input_value="Sum of all 1099-INT Box 1",
+            output_value=f"${interest_income:,.2f}",
+        ))
+        n += 1
+
+    # --- Step 3c: 1099-MISC income (if present) ---
+    if misc_income > 0:
+        steps.append(CalculationStep(
+            step_number=n, source_form="1099-MISC",
+            label="1099-MISC Other Income (Combined)",
+            rule_reference="Form 1099-MISC, Boxes 2 & 3",
+            input_value="Sum of 1099-MISC royalties + other income",
+            output_value=f"${misc_income:,.2f}",
+        ))
+        n += 1
+
     # --- Step 4: Total ECI (effectively connected income) ---
-    total_eci = round(wages + nec_net + ch3_income, 2)
+    total_eci = round(wages + nec_net + ch3_income + interest_income + misc_income, 2)
     steps.append(CalculationStep(
         step_number=n, source_form="COMBINED",
         label="Total Effectively Connected Income",
@@ -1209,6 +1328,8 @@ def _calculate_combined(
             f"${wages:,.2f} W-2" if wages else None,
             f"${nec_net:,.2f} NEC net" if nec_gross else None,
             f"${ch3_income:,.2f} 1042-S" if ch3_income else None,
+            f"${interest_income:,.2f} INT" if interest_income else None,
+            f"${misc_income:,.2f} MISC" if misc_income else None,
         ])),
         output_value=f"${total_eci:,.2f}",
     ))
@@ -1395,6 +1516,10 @@ def calculate(
         return _calculate_nec(confirmed, user_context)
     if "1099-INT" in form_type or "INT" in form_type:
         return _calculate_int(confirmed, user_context)
+    if "1099-MISC" in form_type or "MISC" in form_type:
+        # 1099-MISC: treat other income (Box 3) like NEC for tax purposes.
+        # Rents (Box 1) and royalties (Box 2) are not yet supported.
+        return _calculate_misc(confirmed, user_context)
     if "W-2" in form_type or "W2" in form_type or not form_type:
         # Default to W-2 if form_type is missing (legacy / OCR fallback)
         return _calculate_w2(confirmed, user_context)
@@ -1536,18 +1661,20 @@ def compute_report_extras(
                 if treaty["max_years"] is not None and user_context.first_us_entry_date:
                     try:
                         entry_year = int(str(user_context.first_us_entry_date)[:4])
-                        years_elapsed = 2025 - entry_year
+                        years_elapsed = CURRENT_TAX_YEAR - entry_year
                         eligible = years_elapsed < treaty["max_years"]
                     except (ValueError, TypeError):
                         eligible = True  # unknown entry year → assume eligible
 
                 if eligible:
-                    income_raw = (
-                        _fv("box_1_wages")
-                        or _fv("box_1_nonemployee_compensation")
-                        or _fv("box_1_interest_income")
-                    )
-                    income = _parse_float(income_raw) or 0.0
+                    # Sum all income sources for treaty calculation.
+                    # Each source is independent; don't short-circuit with `or`.
+                    income = sum(filter(None, [
+                        _parse_float(_fv("box_1_wages")),
+                        _parse_float(_fv("box_1_nonemployee_compensation")),
+                        _parse_float(_fv("box_1_interest_income")),
+                        _parse_float(_fv("gross_income_ch3")),
+                    ]))
                     exempt = min(income, treaty["annual_cap"])
                     if exempt > 0:
                         treaty_amount = round(exempt, 2)

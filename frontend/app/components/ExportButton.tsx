@@ -11,6 +11,7 @@ interface ExportButtonProps {
  * ExportButton — downloads the complete tax filing package (cover sheet +
  * Form 1040NR + optional Form 8843) as a single bundled PDF.
  *
+ * Includes a one-time acknowledgment checkbox before download is enabled.
  * Shown only on the CalculationLedgerStep when the session has a completed
  * tax report. The button is disabled while the download is in flight and
  * re-enables automatically on error so the user can retry.
@@ -18,8 +19,10 @@ interface ExportButtonProps {
 export function ExportButton({ documentId }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const handleDownload = async () => {
+    if (!acknowledged) return;
     setLoading(true);
     setError(null);
     try {
@@ -41,19 +44,42 @@ export function ExportButton({ documentId }: ExportButtonProps) {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Acknowledgment gate */}
+      <label
+        className="flex items-start gap-2.5 cursor-pointer select-none"
+        style={{
+          background: "rgba(254,243,199,0.08)",
+          border: "1px solid rgba(251,191,36,0.25)",
+          borderRadius: "0.75rem",
+          padding: "0.75rem 1rem",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={acknowledged}
+          onChange={(e) => setAcknowledged(e.target.checked)}
+          className="mt-0.5 accent-amber-500"
+        />
+        <span className="text-xs text-slate-400 leading-relaxed">
+          I understand Tax-cellent is a filing assistance tool, not professional
+          tax advice. I will review all pre-filled values for accuracy before
+          signing and mailing.
+        </span>
+      </label>
+
       <button
         onClick={handleDownload}
-        disabled={loading}
+        disabled={loading || !acknowledged}
         className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40"
         style={{
-          background: "var(--color-accent)",
+          background: loading || !acknowledged ? "rgba(0,113,227,0.08)" : "var(--color-accent)",
           border: "none",
-          color: "#FFFFFF",
-          cursor: loading ? "not-allowed" : "pointer",
+          color: loading || !acknowledged ? "var(--color-text-secondary)" : "#FFFFFF",
+          cursor: loading || !acknowledged ? "not-allowed" : "pointer",
         }}
-        onMouseEnter={(e) => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-        onMouseLeave={(e) => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+        onMouseEnter={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+        onMouseLeave={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
       >
         {loading ? (
           <>
@@ -61,12 +87,12 @@ export function ExportButton({ documentId }: ExportButtonProps) {
               className="inline-block w-4 h-4 rounded-full border-2 animate-spin"
               style={{ borderColor: "rgba(255,255,255,0.3)", borderTopColor: "#FFFFFF" }}
             />
-            Generating PDF…
+            Generating PDF...
           </>
         ) : (
           <>
-            <span>↓</span>
-            Download Tax Filing Package
+            <span>{acknowledged ? "\u2193" : "\u26A0"}</span>
+            {acknowledged ? "Download Tax Filing Package" : "Check the box above to enable download"}
           </>
         )}
       </button>

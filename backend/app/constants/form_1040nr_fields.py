@@ -189,9 +189,11 @@ EXPECTED_FIELDS: set[str] = EXPECTED_FIELDS_2024
 # Year → FIELD_MAP and EXPECTED_FIELDS dispatch tables
 FIELD_MAPS: dict[int, dict[str, str]] = {
     2024: FIELD_MAP_2024,
+    2025: FIELD_MAP_2024,  # 2025 uses same field IDs (placeholder until IRS publishes new form)
 }
 EXPECTED_FIELDS_BY_YEAR: dict[int, set[str]] = {
     2024: EXPECTED_FIELDS_2024,
+    2025: EXPECTED_FIELDS_2024,  # placeholder
 }
 
 # ---------------------------------------------------------------------------

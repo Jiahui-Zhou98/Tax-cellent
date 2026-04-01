@@ -209,3 +209,33 @@ def test_t06_package_non_nra_no_8843():
     assert len(bundled_parts) == 2, (
         f"Expected 2 PDF parts (cover + 1040NR), got {len(bundled_parts)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T07 — Combined W-2 + NEC filer gets 200 with PDF bytes (TODO-24)
+# ---------------------------------------------------------------------------
+
+def test_t07_package_combined_w2_and_nec_filer():
+    """Combined filer with both wages=30000.0 and gross_income=5000.0 → 200 + PDF."""
+    client = TestClient(app)
+    report = _make_tax_report(
+        form_8843_data=None,
+        wages=30000.0,
+        gross_income=5000.0,
+        withholding=3000.0,
+    )
+    session = _make_session(tax_report=report)
+
+    fake_pdf_bytes = _fake_pdf(3)
+
+    with patch("app.api.forms.load_session", return_value=session), \
+         patch("app.api.forms.generate_cover_sheet_package", return_value=_fake_pdf(1)), \
+         patch("app.api.forms.generate_1040nr", return_value=_fake_pdf(2)), \
+         patch("app.api.forms.bundle_pdfs", return_value=fake_pdf_bytes):
+
+        response = client.post("/api/forms/package", json={"document_id": "test-pkg-doc"})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    body = response.content
+    assert body.startswith(b"%PDF"), "Response body must be valid PDF bytes"

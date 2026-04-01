@@ -5,10 +5,21 @@ import { useDropzone } from "react-dropzone";
 import { uploadDocument, type OCROutput } from "../lib/api";
 
 const UPLOAD_HINTS = [
-  "Extracting text from document…",
-  "Running OCR pipeline…",
-  "Identifying tax fields…",
+  "Extracting text from document\u2026",
+  "Running OCR pipeline\u2026",
+  "Identifying tax fields\u2026",
 ];
+
+const AI_UPLOAD_HINTS = [
+  "Extracting text from document\u2026",
+  "Running AI verification with Gemini\u2026",
+  "Cross-checking extracted values\u2026",
+  "Merging results for best accuracy\u2026",
+];
+
+const AI_KEY_STORAGE = "tax_ai_gemini_key";
+// Also check the key stored by SettingsStep (different sessionStorage key)
+const SETTINGS_KEY_STORAGE = "tax_api_key_gemini";
 
 export function UploadStep({
   onUploaded,
@@ -20,12 +31,35 @@ export function UploadStep({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hintIndex, setHintIndex] = useState(0);
+  const [aiKey, setAiKey] = useState("");
+  const [showAiBanner, setShowAiBanner] = useState(true);
+
+  // Load saved key from sessionStorage on mount — check both Upload and Settings keys
+  useEffect(() => {
+    const saved = sessionStorage.getItem(AI_KEY_STORAGE)
+      || sessionStorage.getItem(SETTINGS_KEY_STORAGE);
+    if (saved) {
+      setAiKey(saved);
+      // Sync to Upload key so it persists for next time
+      sessionStorage.setItem(AI_KEY_STORAGE, saved);
+    }
+  }, []);
+
+  const hints = aiKey ? AI_UPLOAD_HINTS : UPLOAD_HINTS;
 
   useEffect(() => {
     if (!loading) return;
-    const cycle = setInterval(() => setHintIndex((i) => (i + 1) % UPLOAD_HINTS.length), 2500);
+    const cycle = setInterval(() => setHintIndex((i) => (i + 1) % hints.length), 2500);
     return () => clearInterval(cycle);
-  }, [loading]);
+  }, [loading, hints.length]);
+
+  const saveAiKey = () => {
+    if (aiKey.trim()) {
+      sessionStorage.setItem(AI_KEY_STORAGE, aiKey.trim());
+    } else {
+      sessionStorage.removeItem(AI_KEY_STORAGE);
+    }
+  };
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -34,7 +68,11 @@ export function UploadStep({
       setError(null);
       setHintIndex(0);
       try {
-        const ocr = await uploadDocument(files[0]);
+        const ocr = await uploadDocument(
+          files[0],
+          aiKey.trim() || undefined,
+          aiKey.trim() ? "gemini-2.0-flash" : undefined,
+        );
         onUploaded(ocr);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
@@ -42,7 +80,7 @@ export function UploadStep({
         setLoading(false);
       }
     },
-    [onUploaded]
+    [onUploaded, aiKey]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -66,10 +104,53 @@ export function UploadStep({
         </p>
       </div>
 
+      {/* AI Extraction banner */}
+      {showAiBanner && (
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: "rgba(99,102,241,0.06)",
+            border: "1px solid rgba(99,102,241,0.2)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-indigo-400">
+              AI-Powered Extraction
+            </p>
+            <button
+              onClick={() => setShowAiBanner(false)}
+              className="text-xs text-slate-600 hover:text-slate-400"
+            >
+              dismiss
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">
+            Enter your Gemini API key for dramatically more accurate field extraction.
+            Your document is sent to Google for processing. Key saved for this session only.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              placeholder="Gemini API key"
+              value={aiKey}
+              onChange={(e) => setAiKey(e.target.value)}
+              onBlur={saveAiKey}
+              style={{ ...inputStyle, fontSize: "0.75rem" }}
+              className="flex-1"
+            />
+            {aiKey && (
+              <span className="text-xs text-emerald-500 self-center whitespace-nowrap">
+                Saved
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        aria-label="Upload tax document — drop a file here or click to browse"
+        aria-label="Upload tax document, drop a file here or click to browse"
         role="button"
         className="relative rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden"
         style={
@@ -126,13 +207,13 @@ export function UploadStep({
 
           <p className="font-medium" style={{ color: "var(--color-text-primary)" }}>
             {loading
-              ? UPLOAD_HINTS[hintIndex]
+              ? hints[hintIndex]
               : isDragActive
               ? "Release to upload"
               : "Drop your tax document here, or click to browse"}
           </p>
           <p className="text-xs mt-2 font-mono" style={{ color: "var(--color-text-secondary)" }}>
-            {loading ? "\u00a0" : "W-2 · 1099-NEC · 1099-INT · PDF · PNG · JPG"}
+            {loading ? "\u00a0" : "W-2 · 1099-NEC · 1099-INT · 1042-S · PDF · PNG · JPG"}
           </p>
         </div>
       </div>
@@ -203,16 +284,29 @@ export function UploadStep({
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>Your Data Stays on Your Computer</p>
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>All tax processing happens locally — nothing is uploaded to any server.</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>
+              {aiKey ? "AI-Enhanced Processing" : "Your Data Stays on Your Computer"}
+            </p>
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+              {aiKey
+                ? "Your document is sent to Gemini for improved accuracy. Key stored in session only."
+                : "All tax processing happens locally — nothing is uploaded to any server."}
+            </p>
           </div>
         </div>
         <div className="space-y-1.5 pl-12">
-          {[
-            "Document text extraction runs on your machine",
-            "Tax forms are filled and generated locally",
-            "No account, no sign-up, no data stored anywhere",
-          ].map((item) => (
+          {(aiKey
+            ? [
+                "OCR extraction runs locally as baseline",
+                "Gemini Vision verifies each field value",
+                "Disagreements flagged for your review",
+              ]
+            : [
+                "Document text extraction runs on your machine",
+                "Tax forms are filled and generated locally",
+                "No account, no sign-up, no data stored anywhere",
+              ]
+          ).map((item) => (
             <div key={item} className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
               <span className="flex-shrink-0" style={{ color: "var(--color-success)" }}>✓</span>
               {item}
