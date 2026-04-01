@@ -300,7 +300,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-16: University Name Autocomplete
+## ~~TODO-16: University Name Autocomplete~~ ✅ DONE 2026-03-29
 
 **What:** Autocomplete for the institution name field in `ContextStep.tsx` and `ZeroIncomeStep.tsx`. Source: SEVIS-approved schools list or US Department of Education institution database. Currently both fields use plain text inputs.
 
@@ -320,7 +320,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-17: Form 8843 IRS Instructions Cross-Check
+## ~~TODO-17: Form 8843 IRS Instructions Cross-Check~~ ✅ DONE 2026-03-29
 
 **What:** Cross-reference every `Form8843Data` field mapping against the IRS Form 8843 instructions and IRS Publication 519 Chapter 1 before any public launch. Verify line-by-line that each field maps to the correct IRS form line with the correct semantics.
 
@@ -340,7 +340,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-18: Bundle API E2E / Integration Tests
+## ~~TODO-18: Bundle API E2E / Integration Tests~~ ✅ DONE 2026-03-29
 
 **What:** Integration tests for the 6 new bundle API endpoints: `POST /api/bundle`, `POST /bundle/{id}/add-document`, `POST /bundle/{id}/confirm/{doc_id}`, `GET /bundle/{id}/status`, `POST /bundle/{id}/aggregate`, `DELETE /bundle/{id}/document/{doc_id}`. Tests verify full HTTP flow including 409 guards, status transitions, and response shapes. Use FastAPI `TestClient` (already used in `test_form_package_endpoint.py`).
 
@@ -360,7 +360,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-19: 1099-INT Bundle Aggregation
+## ~~TODO-19: 1099-INT Bundle Aggregation~~ ✅ DONE 2026-03-29
 
 **What:** Add 1099-INT to the bundle aggregation flow. `FormType.INT_1099` and `extract_fields()` already support 1099-INT for single-doc flow. Add aggregation rules in `aggregation_service.py`: sum `box_1_interest_income` across 1099-INT documents. Add `_calculate_1099int()` dispatch in `_calculate_combined()`.
 
@@ -399,7 +399,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-21: Visual PDF Verification Test
+## ~~TODO-21: Visual PDF Verification Test~~ ✅ DONE 2026-03-29
 
 **What:** Add a golden-file test that generates a PDF against the actual IRS f1040nr_2024.pdf template with known input values, then reads the output with pdfplumber and asserts key values appear in the expected regions. Same for f8843.
 
@@ -419,7 +419,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-22: Strengthen Legal Disclaimer + User Acknowledgment Gate
+## ~~TODO-22: Strengthen Legal Disclaimer + User Acknowledgment Gate~~ ✅ DONE 2026-03-29
 
 **What:** Before the ExportButton triggers PDF download: (1) strengthen the cover sheet disclaimer from 8pt italic grey to a visible block, (2) add a one-time acknowledgment checkbox ("I understand this is a filing assistance tool, not professional tax advice. I will review all values before mailing."), (3) consider adding a DRAFT watermark to generated PDFs that the user must remove or acknowledge.
 
@@ -439,7 +439,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-23: Integration Test for _extract_step_amount
+## ~~TODO-23: Integration Test for _extract_step_amount~~ ✅ DONE 2026-03-29
 
 **What:** Add integration tests that exercise `_extract_step_amount()` in `form_generator.py:332` with known `CalculationStep` outputs from the tax engine. Verify that the regex parsing produces correct numeric values for: 1042-S income, Ch3/Ch4 withholding, taxable income, and computed tax amount.
 
@@ -453,7 +453,7 @@ Design and product debt tracked here. Items added by /plan-design-review on 2026
 
 ---
 
-## TODO-24: Combined W-2 + NEC Filer 1040NR Integration Test
+## ~~TODO-24: Combined W-2 + NEC Filer 1040NR Integration Test~~ ✅ DONE 2026-03-29
 
 **What:** Add an integration test for the `/api/forms/package` endpoint that exercises the combined W-2 + 1099-NEC filer path. Create a TaxReport with both `wages` and `gross_income` populated, generate the tax package, and verify the 1040NR fills both the wages line (1a) and the NEC income line (2).
 

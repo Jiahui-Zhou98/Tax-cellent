@@ -116,9 +116,15 @@ export interface SessionState {
   status: string;
 }
 
-export async function uploadDocument(file: File): Promise<OCROutput> {
+export async function uploadDocument(
+  file: File,
+  aiApiKey?: string,
+  aiModel?: string,
+): Promise<OCROutput> {
   const form = new FormData();
   form.append("file", file);
+  if (aiApiKey) form.append("ai_api_key", aiApiKey);
+  if (aiModel) form.append("ai_model", aiModel);
   const res = await fetch(`${API_BASE}/api/upload`, { method: "POST", body: form });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -163,16 +169,28 @@ export async function analyzeDocument(
   document_id: string,
   preferences: AnalysisPreferences
 ): Promise<TaxReport> {
-  const res = await fetch(`${API_BASE}/api/analyze/${document_id}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(preferences),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Analysis failed");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(`${API_BASE}/api/analyze/${document_id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(preferences),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || "Analysis failed");
+    }
+    return res.json();
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("Analysis timed out after 60 seconds. Check your API key and try again.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return res.json();
 }
 
 export async function getSessionStatus(document_id: string): Promise<string> {

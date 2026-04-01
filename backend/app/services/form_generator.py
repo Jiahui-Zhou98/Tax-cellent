@@ -108,22 +108,30 @@ def _build_field_values(data: Form8843Data) -> dict[str, str]:
 
     prior_years_str = ", ".join(str(y) for y in sorted(data.exempt_prior_years)) if data.exempt_prior_years else ""
 
+    # Combine institution name, city, state into one line for Part III Line 9
+    inst_parts = [p for p in [
+        data.institution_name,
+        data.institution_city,
+        data.institution_state,
+    ] if p]
+    institution_combined = ", ".join(inst_parts)
+
+    # Signature block: name + date on one line
+    sign_line = f"{full_name_sign}    {data.tax_year}-04-15"
+
     return {
         "last_name":              data.last_name,
         "first_name_mi":          data.first_name,
         "tin":                    tin_display,
-        "visa_type":              data.visa_type,
+        "visa_type":              f"{data.visa_type}   Entered: {data.first_us_entry_date or ''}",
         "date_arrived":           data.first_us_entry_date or "",
         "days_us_current":        str(data.days_in_us_current_year) if data.days_in_us_current_year is not None else "",
-        "institution_name":       data.institution_name or "",
-        "institution_city":       data.institution_city or "",   # separate city field
-        "institution_state":      data.institution_state or "",  # separate state field
+        "institution_name":       institution_combined,
+        "director_name":          "",  # Line 10 (director) — left blank unless provided
         "prior_exempt_years":     prior_years_str,
         "exchange_program":       data.exchange_program_name or "",
         "sponsor_name":           data.sponsor_name or "",
-        "sponsor_address":        data.sponsor_address or "",
-        "taxpayer_name_sign":     full_name_sign,
-        "sign_date":              f"{data.tax_year}-04-15",
+        "taxpayer_name_sign":     sign_line,
     }
 
 
@@ -400,9 +408,8 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── 1042-S income → Line 8 (other income) ─────────────────────────────
     # The combined/1042-S paths include ch3 income that has no dedicated line
     # (wages → Line 1a, NEC → Line 2, 1042-S → Line 8 "other income").
-    income_1042s = _extract_step_amount(
-        report.calculation_steps, "Chapter 3 Gross Income"
-    ) or _extract_step_amount(
+    _ch3_primary = _extract_step_amount(report.calculation_steps, "Chapter 3 Gross Income")
+    income_1042s = _ch3_primary if _ch3_primary is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 3 Income"
     )
     if income_1042s and income_1042s > 0:
@@ -411,17 +418,15 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── 1042-S withholding → Line 25c (other withholding) ─────────────────
     # compute_report_extras() only captures W-2 or NEC withholding; ch3/ch4
     # withholding must be extracted from calculation_steps here.
-    ch3_wh = _extract_step_amount(
-        report.calculation_steps, "Chapter 3 Federal Tax Withheld"
-    ) or _extract_step_amount(
+    _ch3_wh_p = _extract_step_amount(report.calculation_steps, "Chapter 3 Federal Tax Withheld")
+    ch3_wh = _ch3_wh_p if _ch3_wh_p is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 3 Withheld"
     )
-    ch4_wh = _extract_step_amount(
-        report.calculation_steps, "Chapter 4 Federal Tax Withheld"
-    ) or _extract_step_amount(
+    _ch4_wh_p = _extract_step_amount(report.calculation_steps, "Chapter 4 Federal Tax Withheld")
+    ch4_wh = _ch4_wh_p if _ch4_wh_p is not None else _extract_step_amount(
         report.calculation_steps, "1042-S Chapter 4 Withheld"
     )
-    total_1042s_wh = (ch3_wh or 0.0) + (ch4_wh or 0.0)
+    total_1042s_wh = (ch3_wh if ch3_wh is not None else 0.0) + (ch4_wh if ch4_wh is not None else 0.0)
     if total_1042s_wh > 0:
         values["withholding_other"] = f"{total_1042s_wh:.2f}"
         # Recalculate total_withholding to include 1042-S portion
@@ -436,9 +441,8 @@ def _build_1040nr_field_values(report: TaxReport) -> dict[str, str]:
     # ── Line 16: Tax on taxable income ────────────────────────────────────
     # "Total Tax Liability" step (NEC/COMBINED) includes SE tax; fall back to
     # "Federal Income Tax" step for the simpler W-2 / 1042-S paths.
-    tax_amount = _extract_step_amount(
-        report.calculation_steps, "Total Tax Liability"
-    ) or _extract_step_amount(
+    _tax_p = _extract_step_amount(report.calculation_steps, "Total Tax Liability")
+    tax_amount = _tax_p if _tax_p is not None else _extract_step_amount(
         report.calculation_steps, "Federal Income Tax"
     )
     if tax_amount is not None and tax_amount > 0:
@@ -710,13 +714,18 @@ def generate_cover_sheet_package(report: TaxReport) -> bytes:
     line("Check with your university's ISSO or visit your state's tax website.")
     line("Many universities offer free state return help through VITA or Glacier Tax Prep.")
 
-    # Disclaimer
-    y -= 10
-    c.setFont("Helvetica-Oblique", 8)
-    c.setFillColor(colors.grey)
-    c.drawString(72, y, "Tax-cellent provides tax filing assistance tools, not professional tax advice.")
-    y -= 11
-    c.drawString(72, y, "When in doubt, consult a licensed tax professional or your university's ISSO.")
+    # Disclaimer — visible block, not fine print
+    y -= 16
+    c.setFillColor(colors.HexColor("#fef3c7"))
+    c.rect(60, y - 52, width - 120, 60, fill=True, stroke=False)
+    c.setFillColor(colors.HexColor("#92400e"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(72, y - 6, "IMPORTANT DISCLAIMER")
+    c.setFont("Helvetica", 8)
+    c.drawString(72, y - 19, "Tax-cellent is a tax filing assistance tool. It is NOT a substitute for professional tax advice.")
+    c.drawString(72, y - 30, "You are responsible for reviewing every value on these forms before signing and mailing.")
+    c.drawString(72, y - 41, "Tax-cellent makes no guarantee of accuracy. When in doubt, consult a licensed tax professional")
+    c.drawString(72, y - 52, "or your university's International Students & Scholars Office (ISSO).")
 
     c.save()
     buf.seek(0)

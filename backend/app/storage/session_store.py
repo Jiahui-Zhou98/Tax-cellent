@@ -1,19 +1,30 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from app.schemas.document import DocumentBundle, SessionState
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+_SAFE_ID = re.compile(r"^[a-zA-Z0-9_\-]+$")
+
+
+def _validate_id(id_value: str, label: str = "id") -> None:
+    """Reject IDs that could cause path traversal (e.g. '../../etc/passwd')."""
+    if not _SAFE_ID.match(id_value):
+        raise ValueError(f"Invalid {label}: must be alphanumeric, hyphens, or underscores")
+
 
 def _session_path(document_id: str) -> Path:
+    _validate_id(document_id, "document_id")
     os.makedirs(settings.SESSION_DIR, exist_ok=True)
     return Path(settings.SESSION_DIR) / f"{document_id}.json"
 
 
 def _bundle_path(bundle_id: str) -> Path:
+    _validate_id(bundle_id, "bundle_id")
     os.makedirs(settings.SESSION_DIR, exist_ok=True)
     return Path(settings.SESSION_DIR) / f"bundle_{bundle_id}.json"
 

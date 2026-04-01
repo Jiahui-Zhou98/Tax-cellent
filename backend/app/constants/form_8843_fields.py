@@ -59,45 +59,52 @@ from __future__ import annotations
 #  y≈ 72: f1_34 preparer_address
 
 FIELD_MAP_2025: dict[str, str] = {
-    # ── Header ────────────────────────────────────────────────
-    "last_name":              "f1_01[0]",
-    "first_name_mi":          "f1_02[0]",
-    "tin":                    "f1_03[0]",
-    "address_us":             "f1_04[0]",
-    "city_state_zip_us":      "f1_05[0]",
-    "address_foreign":        "f1_06[0]",
-    "city_foreign":           "f1_07[0]",
-    "country_foreign":        "f1_08[0]",
-    # ── Part I — All Filers ───────────────────────────────────
-    "visa_type":              "f1_09[0]",   # Line 1
-    "date_arrived":           "f1_10[0]",   # Line 2 from
-    "date_left_or_present":   "f1_11[0]",   # Line 2 to / "Present"
-    "days_us_current":        "f1_12[0]",   # Line 3
-    # ── Part II — Students ────────────────────────────────────
-    "institution_name":       "f1_14[0]",   # Line 4a
-    "institution_city":       "f1_15[0]",   # Line 4b
-    "institution_state":      "f1_16[0]",   # Line 4c
-    "director_name":          "f1_17[0]",   # Line 5
-    # ── Part III — Teachers / Researchers ────────────────────
-    "employer_name":          "f1_18[0]",   # Line 6a
-    "employer_city_state":    "f1_19[0]",   # Line 6b
-    "prior_exempt_years":     "f1_20[0]",   # Line 7
-    # ── Part V — Exchange Visitors (J-1 / Q) ─────────────────
-    "exchange_program":       "f1_22[0]",   # Line 9
-    "sponsor_name":           "f1_23[0]",   # Line 10
-    "sponsor_address":        "f1_24[0]",   # Line 11 (first line)
+    # f1_01-03 = tax year beginning/ending (leave blank for calendar year filers)
+    # ── Header (name row) ──────────────────────────────────────
+    "first_name_mi":          "f1_04[0]",   # Your first name and initial
+    "last_name":              "f1_05[0]",   # Last name
+    "tin":                    "f1_06[0]",   # U.S. taxpayer ID number (TIN)
+    # ── Addresses (fill only if filing 8843 by itself) ─────────
+    "address_foreign":        "f1_07[0]",   # Address in country of residence
+    "address_us":             "f1_08[0]",   # Address in the United States
+    # ── Part I — General Information ──────────────────────────
+    "visa_type":              "f1_09[0]",   # Line 1a — visa type + date entered
+    "date_arrived":           "f1_10[0]",   # Line 1b — current nonimmigrant status
+    "country_citizen":        "f1_11[0]",   # Line 2 — country of citizenship
+    "passport_country":       "f1_12[0]",   # Line 3a — passport issuing country
+    "passport_number":        "f1_13[0]",   # Line 3b — passport number
+    # Line 4a — days present in US
+    "days_us_current":        "f1_14[0]",   # current year (2025)
+    "days_us_prior_1":        "f1_15[0]",   # prior year 1 (2024)
+    "days_us_prior_2":        "f1_16[0]",   # prior year 2 (2023)
+    # Line 4b
+    "days_exclude":           "f1_17[0]",   # days to exclude from SPT
+    # ── Part II — Teachers and Trainees ───────────────────────
+    "teacher_institution":    "f1_18[0]",   # Line 5 — teacher institution (name, addr, phone)
+    "trainee_director":       "f1_19[0]",   # Line 6 — trainee director (name, addr, phone)
+    # Line 7 — visa type held during prior years (Part II)
+    "pt2_visa_2019":          "f1_20[0]",
+    "pt2_visa_2020":          "f1_21[0]",
+    "pt2_visa_2021":          "f1_22[0]",
+    "pt2_visa_2022":          "f1_23[0]",
+    "pt2_visa_2023":          "f1_24[0]",
+    "pt2_visa_2024":          "f1_25[0]",
+    # Line 8 — exempt as teacher/trainee/student? (checkbox)
+    "status_change_applied":  "c1_1[0]",    # Yes
+    # ── Part III — Students ───────────────────────────────────
+    "institution_name":       "f1_26[0]",   # Line 9 — institution (name, addr, phone)
+    "director_name":          "f1_27[0]",   # Line 10 — director (name, addr, phone)
+    # Line 11 — visa type held during prior years (Part III)
+    "pt3_visa_2019":          "f1_28[0]",
+    "pt3_visa_2020":          "f1_29[0]",
+    "pt3_visa_2021":          "f1_30[0]",
+    "pt3_visa_2022":          "f1_31[0]",
+    "pt3_visa_2023":          "f1_32[0]",
+    "pt3_visa_2024":          "f1_33[0]",
+    # Line 12 — exempt in prior 6 years? (checkbox)
+    "claimed_in_prior_6_yrs": "c1_2[0]",    # Yes
     # ── Signature ─────────────────────────────────────────────
-    "taxpayer_name_sign":     "f1_26[0]",
-    "sign_date":              "f1_27[0]",
-    # ── Paid Preparer (optional) ──────────────────────────────
-    "preparer_name":          "f1_30[0]",
-    "preparer_ptin":          "f1_31[0]",
-    "preparer_firm":          "f1_32[0]",
-    "preparer_ein":           "f1_33[0]",
-    "preparer_address":       "f1_34[0]",
-    # ── Checkboxes ────────────────────────────────────────────
-    "status_change_applied":  "c1_1[0]",    # Yes option
-    "claimed_in_prior_6_yrs": "c1_2[0]",   # Yes option
+    "taxpayer_name_sign":     "f1_34[0]",   # Signature block
 }
 
 # Full XFA-qualified paths for EXPECTED_FIELDS validation (get_fields() format)
