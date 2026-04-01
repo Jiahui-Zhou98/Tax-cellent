@@ -2,30 +2,31 @@
 
 import { useState } from "react";
 import { confirmFields, type OCROutput, type ValidationOutput } from "../lib/api";
-import { glowBtn } from "../styles";
 import { SectionCard } from "./SectionCard";
 import { FieldRow } from "./FieldRow";
 
-const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: string[] }[]> = {
+type Variant = "default" | "success" | "warning" | "danger";
+
+const FIELD_GROUPS: Record<string, { title: string; variant: Variant; fields: string[] }[]> = {
   "W-2": [
     {
       title: "Document Info",
-      accent: "#64748b",
+      variant: "default",
       fields: ["form_type", "tax_year", "import_code"],
     },
     {
       title: "Employee",
-      accent: "#22d3ee",
+      variant: "default",
       fields: ["employee_name", "employee_ssn", "employee_address"],
     },
     {
       title: "Employer",
-      accent: "#818cf8",
+      variant: "default",
       fields: ["employer_name", "employer_ein", "employer_address"],
     },
     {
       title: "Federal Boxes",
-      accent: "#34d399",
+      variant: "success",
       fields: [
         "box_1_wages",
         "box_2_federal_tax_withheld",
@@ -41,7 +42,7 @@ const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: stri
     },
     {
       title: "Box 12 — Deferred Compensation",
-      accent: "#a78bfa",
+      variant: "default",
       fields: [
         "box_12a_code",
         "box_12a_amount",
@@ -55,7 +56,7 @@ const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: stri
     },
     {
       title: "Box 13 & 14",
-      accent: "#94a3b8",
+      variant: "default",
       fields: [
         "box_13_statutory_employee",
         "box_13_retirement_plan",
@@ -65,7 +66,7 @@ const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: stri
     },
     {
       title: "State & Local Boxes",
-      accent: "#fb923c",
+      variant: "warning",
       fields: [
         "box_15_state",
         "box_15_employer_state_id",
@@ -78,30 +79,30 @@ const FIELD_GROUPS: Record<string, { title: string; accent: string; fields: stri
     },
   ],
   "1099-NEC": [
-    { title: "Document Info", accent: "#64748b", fields: ["form_type", "tax_year"] },
+    { title: "Document Info", variant: "default", fields: ["form_type", "tax_year"] },
     {
       title: "Payer",
-      accent: "#818cf8",
+      variant: "default",
       fields: ["payer_name", "payer_tin", "payer_address"],
     },
     {
       title: "Recipient",
-      accent: "#22d3ee",
+      variant: "default",
       fields: ["recipient_name", "recipient_tin", "recipient_address"],
     },
     {
       title: "Boxes",
-      accent: "#34d399",
+      variant: "success",
       fields: ["box_1_nonemployee_compensation", "box_4_federal_tax_withheld"],
     },
   ],
   "1099-INT": [
-    { title: "Document Info", accent: "#64748b", fields: ["form_type", "tax_year"] },
-    { title: "Payer", accent: "#818cf8", fields: ["payer_name"] },
-    { title: "Recipient", accent: "#22d3ee", fields: ["recipient_name"] },
+    { title: "Document Info", variant: "default", fields: ["form_type", "tax_year"] },
+    { title: "Payer", variant: "default", fields: ["payer_name"] },
+    { title: "Recipient", variant: "default", fields: ["recipient_name"] },
     {
       title: "Interest Boxes",
-      accent: "#34d399",
+      variant: "success",
       fields: [
         "box_1_interest_income",
         "box_2_early_withdrawal_penalty",
@@ -166,7 +167,6 @@ export function FieldReviewStep({
   };
 
   const handleConfirm = async () => {
-    // Snapshot state before navigating forward so it can be restored on Back
     onStateSave?.(fields, Array.from(unresolved));
     setLoading(true);
     setError(null);
@@ -200,22 +200,27 @@ export function FieldReviewStep({
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white tracking-tight">Review Extracted Fields</h2>
-          <p className="text-slate-500 text-sm mt-1">
+          <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+            Review Extracted Fields
+          </h2>
+          <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
             Verify extracted values. Edit incorrect fields or flag unresolved ones.
           </p>
         </div>
         <button
           onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
           disabled={loading}
-          className="text-sm text-slate-600 hover:text-slate-300 transition-colors mt-1 whitespace-nowrap disabled:opacity-40"
+          className="text-sm mt-1 whitespace-nowrap disabled:opacity-40 transition-colors"
+          style={{ color: "var(--color-text-secondary)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
         >
           ← Re-upload
         </button>
       </div>
 
       {reviewFlags.length > 0 && (
-        <SectionCard title="Review Flags — Low Confidence" accent="#f87171">
+        <SectionCard title="Review Flags — Low Confidence" variant="danger">
           {reviewFlags.map(([key]) => (
             <FieldRow key={key} fieldKey={key} field={fields[key]} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
           ))}
@@ -223,7 +228,7 @@ export function FieldReviewStep({
       )}
 
       {groups.map((group) => (
-        <SectionCard key={group.title} title={group.title} accent={group.accent}>
+        <SectionCard key={group.title} title={group.title} variant={group.variant}>
           {group.fields.map((key) => (
             <FieldRow key={key} fieldKey={key} field={fields[key] ?? { value: "", source: "missing", confidence: 0 }} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
           ))}
@@ -231,7 +236,7 @@ export function FieldReviewStep({
       ))}
 
       {otherKeys.length > 0 && (
-        <SectionCard title="Other Fields" accent="#64748b">
+        <SectionCard title="Other Fields" variant="default">
           {otherKeys.map((key) => (
             <FieldRow key={key} fieldKey={key} field={fields[key]} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
           ))}
@@ -240,10 +245,14 @@ export function FieldReviewStep({
 
       {error && (
         <div
-          className="rounded-xl p-4 text-sm text-red-400"
-          style={{ background: "rgba(127,29,29,0.2)", border: "1px solid rgba(239,68,68,0.2)" }}
+          className="rounded-xl p-4 text-sm"
+          style={{
+            background: "rgba(255,59,48,0.06)",
+            border: "1px solid rgba(255,59,48,0.2)",
+            color: "var(--color-danger)",
+          }}
         >
-          <span className="font-mono text-red-500 mr-2">ERROR</span>
+          <span className="font-mono mr-2">ERROR</span>
           {error}
         </div>
       )}
@@ -252,8 +261,13 @@ export function FieldReviewStep({
         <button
           onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
           disabled={loading}
-          className="px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 font-medium text-sm transition-all disabled:opacity-40"
-          style={{ border: "1px solid rgba(71,85,105,0.5)" }}
+          className="px-5 py-3 rounded-xl font-medium text-sm transition-all disabled:opacity-40"
+          style={{
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-primary)",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           ← Back
         </button>
@@ -261,11 +275,7 @@ export function FieldReviewStep({
           onClick={handleConfirm}
           disabled={loading}
           className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40"
-          style={
-            loading
-              ? { background: "#2563eb", opacity: 0.6 }
-              : { background: "#2563eb", ...glowBtn() }
-          }
+          style={{ background: loading ? "#AEAEB2" : "var(--color-accent)", cursor: loading ? "not-allowed" : "pointer" }}
         >
           {loading ? "Confirming…" : "Confirm Fields & Run Validation →"}
         </button>

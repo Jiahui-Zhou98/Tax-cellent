@@ -519,7 +519,8 @@ def _calculate_nec(
     if user_context and user_context.wants_state_estimate and user_context.state_code:
         state_base = max(0.0, gross - (expenses if expenses > 0 else 0))
         state_steps = _calculate_state_tax(state_base, user_context.state_code)
-        steps.extend(state_steps)
+        offset = len(steps)
+        steps.extend(s.model_copy(update={"step_number": offset + s.step_number}) for s in state_steps)
 
     return steps, outcome, abs(balance)
 
@@ -619,7 +620,8 @@ def _calculate_int(
     # --- State income tax estimate (optional, gated on user_context) ---
     if user_context and user_context.wants_state_estimate and user_context.state_code:
         state_steps = _calculate_state_tax(interest, user_context.state_code)
-        steps.extend(state_steps)
+        offset = len(steps)
+        steps.extend(s.model_copy(update={"step_number": offset + s.step_number}) for s in state_steps)
 
     return steps, outcome, abs(balance)
 
@@ -967,7 +969,8 @@ def _calculate_w2(
     # --- State income tax estimate (optional, gated on user_context) ---
     if user_context and user_context.wants_state_estimate and user_context.state_code:
         state_steps = _calculate_state_tax(wages, user_context.state_code)
-        steps.extend(state_steps)
+        offset = len(steps)
+        steps.extend(s.model_copy(update={"step_number": offset + s.step_number}) for s in state_steps)
 
     return steps, outcome, abs(balance)
 
@@ -1091,7 +1094,8 @@ def _calculate_1042s(
 
     if user_context and user_context.wants_state_estimate and user_context.state_code:
         state_steps = _calculate_state_tax(ch3_income, user_context.state_code)
-        steps.extend(state_steps)
+        offset = len(steps)
+        steps.extend(s.model_copy(update={"step_number": offset + s.step_number}) for s in state_steps)
 
     return steps, outcome, abs(balance)
 
@@ -1362,7 +1366,8 @@ def _calculate_combined(
 
     if user_context and user_context.wants_state_estimate and user_context.state_code:
         state_steps = _calculate_state_tax(total_eci, user_context.state_code)
-        steps.extend(state_steps)
+        offset = len(steps)
+        steps.extend(s.model_copy(update={"step_number": offset + s.step_number}) for s in state_steps)
 
     return steps, outcome, abs(balance)
 

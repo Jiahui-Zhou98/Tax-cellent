@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { checkHealth, getProviderModels, type AnalysisPreferences, type HealthStatus } from "../lib/api";
-import { inputStyle, glowBtn } from "../styles";
+import { inputStyle } from "../styles";
 import { SectionCard } from "./SectionCard";
 
 // Fallback model lists — used if the backend endpoint is unreachable.
@@ -49,7 +49,6 @@ export function SettingsStep({
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [providerModels, setProviderModels] = useState<Record<string, string[]>>(FALLBACK_PROVIDER_MODELS);
 
-  // Fetch health status and model list on mount
   useEffect(() => {
     checkHealth().then(setHealth).catch(() => {});
     getProviderModels().then((models) => {
@@ -57,7 +56,6 @@ export function SettingsStep({
     });
   }, []);
 
-  // When provider changes: reset model, load remembered key if present
   function handleProviderChange(next: AnalysisPreferences["provider"]) {
     setProvider(next);
     setModel("");
@@ -97,17 +95,19 @@ export function SettingsStep({
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-semibold text-white tracking-tight">AI Provider Settings</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+          AI Provider Settings
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           Choose the model that will generate explanations in your tax report.
         </p>
       </div>
 
-      <SectionCard title="AI Explanation Provider" accent="#22d3ee">
+      <SectionCard title="AI Explanation Provider" variant="default">
         <div className="space-y-4">
           {/* Provider selector */}
           <div>
-            <label htmlFor="provider-select" className="text-xs text-slate-500 mb-1.5 block">
+            <label htmlFor="provider-select" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
               Provider
             </label>
             <select
@@ -121,7 +121,7 @@ export function SettingsStep({
                 const ok = p === "ollama" ? st?.running : st?.configured;
                 const badge = health ? (ok ? " ✓" : " ✗") : "";
                 return (
-                  <option key={p} value={p} style={{ background: "#0d1424" }}>
+                  <option key={p} value={p}>
                     {PROVIDER_INFO[p].label}{badge}
                   </option>
                 );
@@ -132,11 +132,19 @@ export function SettingsStep({
           {/* Configured status badge */}
           {health && (
             <div
-              className={`text-xs px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 ${
-                isConfigured
-                  ? "bg-emerald-900/40 text-emerald-400 border border-emerald-700/40"
-                  : "bg-red-900/30 text-red-400 border border-red-700/30"
-              }`}
+              className="text-xs px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
+              style={isConfigured
+                ? {
+                    background: "rgba(52,199,89,0.08)",
+                    color: "var(--color-success)",
+                    border: "1px solid rgba(52,199,89,0.25)",
+                  }
+                : {
+                    background: "rgba(255,59,48,0.06)",
+                    color: "var(--color-danger)",
+                    border: "1px solid rgba(255,59,48,0.2)",
+                  }
+              }
             >
               <span>{isConfigured ? "●" : "○"}</span>
               {isConfigured
@@ -150,14 +158,14 @@ export function SettingsStep({
           )}
 
           {/* Provider capability note */}
-          <p className="text-xs text-slate-600">{PROVIDER_INFO[provider].note}</p>
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{PROVIDER_INFO[provider].note}</p>
 
           {/* API key input — cloud providers only */}
           {isCloud && (
             <div className="space-y-2">
-              <label htmlFor="api-key-input" className="text-xs text-slate-500 mb-1.5 block">
+              <label htmlFor="api-key-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
                 API Key{" "}
-                <span className="text-slate-700">(session-only, never stored server-side)</span>
+                <span style={{ opacity: 0.7 }}>(session-only, never stored server-side)</span>
               </label>
               <input
                 id="api-key-input"
@@ -173,7 +181,7 @@ export function SettingsStep({
                 autoComplete="off"
               />
               {!isConfigured && !apiKey && (
-                <p className="text-xs text-amber-500/80">
+                <p className="text-xs" style={{ color: "var(--color-warning)" }}>
                   No key found in backend — enter one above to continue.
                 </p>
               )}
@@ -183,12 +191,12 @@ export function SettingsStep({
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="accent-cyan-500"
+                  style={{ accentColor: "var(--color-accent)" }}
                   aria-label="Remember API key for this browser session"
                 />
-                <span className="text-xs text-slate-500">
+                <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
                   Remember for this session{" "}
-                  <span className="text-slate-700">(clears when tab closes)</span>
+                  <span style={{ opacity: 0.7 }}>(clears when tab closes)</span>
                 </span>
               </label>
             </div>
@@ -196,7 +204,7 @@ export function SettingsStep({
 
           {/* Model picker: dropdown for cloud, text input for Ollama */}
           <div>
-            <label htmlFor="model-input" className="text-xs text-slate-500 mb-1.5 block">
+            <label htmlFor="model-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
               Model
             </label>
             {modelList.length > 0 ? (
@@ -206,13 +214,9 @@ export function SettingsStep({
                 onChange={(e) => setModel(e.target.value)}
                 style={inputStyle}
               >
-                <option value="" style={{ background: "#0d1424" }}>
-                  Default
-                </option>
+                <option value="">Default</option>
                 {modelList.map((m) => (
-                  <option key={m} value={m} style={{ background: "#0d1424" }}>
-                    {m}
-                  </option>
+                  <option key={m} value={m}>{m}</option>
                 ))}
               </select>
             ) : (
@@ -227,7 +231,7 @@ export function SettingsStep({
             )}
           </div>
 
-          <p className="text-xs text-slate-700">
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
             This only changes the AI explanations in the final report. Extraction,
             validation, and tax math are deterministic.
           </p>
@@ -239,9 +243,10 @@ export function SettingsStep({
           onClick={onBack}
           className="py-3.5 px-5 rounded-xl text-sm font-semibold transition-all"
           style={{
-            background: "rgba(71,85,105,0.2)",
-            border: "1px solid rgba(71,85,105,0.3)",
-            color: "#94a3b8",
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-primary)",
+            cursor: "pointer",
           }}
         >
           ← Back
@@ -250,7 +255,7 @@ export function SettingsStep({
           onClick={handleAnalyze}
           disabled={!canSubmit}
           className="flex-1 py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: "#2563eb", ...glowBtn() }}
+          style={{ background: "var(--color-accent)", cursor: canSubmit ? "pointer" : "not-allowed" }}
         >
           Calculate Tax Outcome →
         </button>

@@ -52,7 +52,7 @@ export const FIELD_LABELS: Record<string, string> = {
 };
 
 export const confColor = (c: number) =>
-  c >= 0.8 ? "#34d399" : c >= 0.5 ? "#fbbf24" : "#f87171";
+  c >= 0.8 ? "#34C759" : c >= 0.5 ? "#FF9F0A" : "#FF3B30";
 
 export function FieldRow({
   fieldKey,
@@ -72,14 +72,14 @@ export function FieldRow({
       className="rounded-lg px-4 py-3 transition-all"
       style={
         isUnresolved
-          ? { background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.25)" }
-          : { background: "rgba(15,23,42,0.5)", border: "1px solid rgba(255,255,255,0.05)" }
+          ? { background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.25)" }
+          : { background: "var(--color-bg)", border: "1px solid var(--color-border)" }
       }
     >
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs text-slate-500" id={`label-${fieldKey}`}>
+            <span className="text-xs" id={`label-${fieldKey}`} style={{ color: "var(--color-text-secondary)" }}>
               {FIELD_LABELS[fieldKey] ?? fieldKey}
             </span>
             {field.confidence > 0 ? (
@@ -104,9 +104,9 @@ export function FieldRow({
                 </span>
               </>
             ) : (
-              <span className="text-xs font-mono text-slate-700">not detected</span>
+              <span className="text-xs font-mono" style={{ color: "var(--color-text-secondary)", opacity: 0.5 }}>not detected</span>
             )}
-            <span className="ml-auto text-xs font-mono text-slate-700" aria-hidden="true">
+            <span className="ml-auto text-xs font-mono" style={{ color: "var(--color-text-secondary)", opacity: 0.5 }} aria-hidden="true">
               {field.source !== "missing" ? field.source : ""}
             </span>
           </div>
@@ -116,14 +116,15 @@ export function FieldRow({
             value={field.value}
             onChange={(e) => onChange(fieldKey, e.target.value)}
             disabled={isUnresolved}
-            className="w-full text-slate-100 font-mono text-sm py-0.5 transition-colors focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full font-mono text-sm py-0.5 transition-colors focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
               background: "transparent",
               border: "none",
-              borderBottom: "1px solid rgba(71,85,105,0.4)",
+              borderBottom: "1px solid var(--color-border)",
+              color: "var(--color-text-primary)",
             }}
-            onFocus={(e) => { e.target.style.borderBottomColor = "rgba(34,211,238,0.5)"; }}
-            onBlur={(e) => { e.target.style.borderBottomColor = "rgba(71,85,105,0.4)"; }}
+            onFocus={(e) => { e.target.style.borderBottomColor = "var(--color-accent)"; }}
+            onBlur={(e) => { e.target.style.borderBottomColor = "var(--color-border)"; }}
           />
         </div>
         <button
@@ -133,8 +134,8 @@ export function FieldRow({
           className="text-xs px-2 py-0.5 rounded border transition-all flex-shrink-0 font-mono"
           style={
             isUnresolved
-              ? { borderColor: "rgba(251,191,36,0.4)", color: "#fbbf24", background: "rgba(251,191,36,0.08)" }
-              : { borderColor: "rgba(71,85,105,0.4)", color: "#475569" }
+              ? { borderColor: "rgba(255,159,10,0.4)", color: "var(--color-warning)", background: "rgba(255,159,10,0.08)" }
+              : { borderColor: "var(--color-border)", color: "var(--color-text-secondary)", background: "transparent" }
           }
         >
           {isUnresolved ? "UNRESOLVED" : "FLAG"}

@@ -21,15 +21,15 @@ function Form843Field({
 }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-xs font-mono tracking-wide" style={{ color: "#64748b" }}>
+      <p className="text-xs font-mono tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
         {label}
       </p>
       <div
         className={`px-3 py-2 rounded-lg text-sm ${multiline ? "min-h-[3.5rem]" : ""}`}
         style={
           prefilled
-            ? { background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)", color: "#fde68a" }
-            : { background: "rgba(15,23,42,0.4)", border: "1px dashed rgba(71,85,105,0.35)", color: "#475569" }
+            ? { background: "rgba(255,159,10,0.08)", border: "1px solid rgba(255,159,10,0.25)", color: "var(--color-text-primary)" }
+            : { background: "var(--color-bg)", border: "1px dashed var(--color-border)", color: "var(--color-text-secondary)" }
         }
       >
         {prefilled
@@ -52,11 +52,11 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       return next;
     });
 
-  const outcomeConfig: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
-    refund:   { label: "ESTIMATED REFUND",   color: "#34d399", bg: "rgba(52,211,153,0.07)",  border: "rgba(52,211,153,0.25)",  glow: "rgba(52,211,153,0.25)"  },
-    owe:      { label: "ESTIMATED TAX OWED", color: "#f87171", bg: "rgba(248,113,113,0.07)", border: "rgba(248,113,113,0.25)", glow: "rgba(248,113,113,0.2)"  },
-    balanced: { label: "BALANCED",           color: "#60a5fa", bg: "rgba(96,165,250,0.07)",  border: "rgba(96,165,250,0.25)",  glow: "rgba(96,165,250,0.2)"   },
-    unknown:  { label: "OUTCOME UNKNOWN",    color: "#94a3b8", bg: "rgba(100,116,139,0.07)", border: "rgba(100,116,139,0.25)", glow: "rgba(100,116,139,0.1)"  },
+  const outcomeConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    refund:   { label: "ESTIMATED REFUND",   color: "var(--color-success)",  bg: "rgba(52,199,89,0.08)",  border: "rgba(52,199,89,0.25)"  },
+    owe:      { label: "ESTIMATED TAX OWED", color: "var(--color-danger)",   bg: "rgba(255,59,48,0.08)",  border: "rgba(255,59,48,0.25)"  },
+    balanced: { label: "BALANCED",           color: "var(--color-accent)",   bg: "rgba(0,113,227,0.06)",  border: "rgba(0,113,227,0.2)"   },
+    unknown:  { label: "OUTCOME UNKNOWN",    color: "var(--color-text-secondary)", bg: "var(--color-bg)", border: "var(--color-border)"   },
   };
 
   const cfg = outcomeConfig[report.estimated_outcome] ?? outcomeConfig.unknown;
@@ -69,11 +69,9 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
   const necFlagSteps = flagSteps.filter((s) => s.source_form === "1099-NEC");
   const normalSteps = report.calculation_steps.filter((s) => !s.is_flag);
 
-  // Extract state tax steps for the State Tax Estimate card
   const stateSteps = normalSteps.filter((s) => s.source_form === "STATE");
   const stateFlagSteps = flagSteps.filter((s) => s.source_form === "STATE");
 
-  // Extract Schedule SE values from NEC normal steps for the prefill card
   const necNormalSteps = normalSteps.filter((s) => s.source_form === "1099-NEC");
   const findNecStep = (label: string) =>
     necNormalSteps.find((s) => s.label.toLowerCase().includes(label.toLowerCase()))?.output_value ?? null;
@@ -85,14 +83,14 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-semibold text-white tracking-tight">Tax Report</h2>
-        <p className="text-xs font-mono text-slate-700 mt-1">{report.document_id}</p>
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>Tax Report</h2>
+        <p className="text-xs font-mono mt-1" style={{ color: "var(--color-text-secondary)" }}>{report.document_id}</p>
       </div>
 
       {/* Outcome banner */}
       <div
         className="rounded-2xl px-6 py-5 text-center"
-        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, boxShadow: `0 0 36px ${cfg.glow}` }}
+        style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
       >
         <p className="text-xs font-mono tracking-widest mb-3" style={{ color: cfg.color }}>
           {cfg.label}
@@ -103,44 +101,44 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
           </p>
         )}
         {report.outcome_explanation && (
-          <p className="text-sm text-slate-400 mt-3 leading-relaxed max-w-md mx-auto">
+          <p className="text-sm mt-3 leading-relaxed max-w-md mx-auto" style={{ color: "var(--color-text-secondary)" }}>
             {report.outcome_explanation}
           </p>
         )}
-        <p className="text-xs text-slate-600 mt-3">
+        <p className="text-xs mt-3" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
           Estimate only — consult a qualified tax professional before filing.
         </p>
       </div>
 
-      {/* ITIN Guidance Card — F-1/J-1/OPT without SSN */}
+      {/* ITIN Guidance Card */}
       {report.needs_itin_guidance && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(167,139,250,0.35)" }}
+          style={{ border: "1px solid rgba(0,113,227,0.25)" }}
         >
           <div
             className="px-5 py-3 flex items-center gap-2"
-            style={{ background: "rgba(167,139,250,0.08)", borderBottom: "1px solid rgba(167,139,250,0.15)" }}
+            style={{ background: "rgba(0,113,227,0.06)", borderBottom: "1px solid rgba(0,113,227,0.12)" }}
           >
-            <span className="text-violet-400 text-sm">🪪</span>
+            <span className="text-sm">🪪</span>
             <div>
-              <p className="text-sm font-semibold text-violet-300">ITIN Required — Form W-7</p>
-              <p className="text-xs text-slate-500">Individual Taxpayer Identification Number · IRS Publication 1915</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>ITIN Required — Form W-7</p>
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Individual Taxpayer Identification Number · IRS Publication 1915</p>
             </div>
           </div>
-          <div className="p-5 space-y-3" style={{ background: "rgba(167,139,250,0.02)" }}>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              No SSN was detected on your document. F-1, J-1, and OPT visa holders who are not eligible for a Social Security Number must obtain an <strong className="text-violet-300">Individual Taxpayer Identification Number (ITIN)</strong> before filing Form 1040-NR.
+          <div className="p-5 space-y-3" style={{ background: "var(--color-surface)" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
+              No SSN was detected on your document. F-1, J-1, and OPT visa holders who are not eligible for a Social Security Number must obtain an <strong style={{ color: "var(--color-accent)" }}>Individual Taxpayer Identification Number (ITIN)</strong> before filing Form 1040-NR.
             </p>
-            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.15)" }}>
-              <p className="text-xs font-mono tracking-widest uppercase text-violet-400">Next Steps</p>
-              <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside leading-relaxed">
-                <li>Complete <strong className="text-slate-300">Form W-7</strong> (Application for IRS Individual Taxpayer Identification Number).</li>
+            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(0,113,227,0.04)", border: "1px solid rgba(0,113,227,0.12)" }}>
+              <p className="text-xs font-mono tracking-widest uppercase" style={{ color: "var(--color-accent)" }}>Next Steps</p>
+              <ol className="text-xs space-y-1 list-decimal list-inside leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                <li>Complete <strong style={{ color: "var(--color-text-primary)" }}>Form W-7</strong> (Application for IRS Individual Taxpayer Identification Number).</li>
                 <li>Attach original identification documents or certified copies (passport, visa, etc.).</li>
                 <li>Submit Form W-7 with your tax return or by mail to the IRS ITIN Operations office.</li>
               </ol>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
               Reference: IRC §6109 · IRS Publication 1915 · Form W-7 instructions at irs.gov.
               Processing typically takes 7–11 weeks.
             </p>
@@ -152,37 +150,37 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {report.treaty_exempt_amount != null && report.treaty_exempt_amount > 0 && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(52,211,153,0.35)" }}
+          style={{ border: "1px solid rgba(52,199,89,0.25)" }}
         >
           <div
             className="px-5 py-3 flex items-center gap-2"
-            style={{ background: "rgba(52,211,153,0.07)", borderBottom: "1px solid rgba(52,211,153,0.12)" }}
+            style={{ background: "rgba(52,199,89,0.06)", borderBottom: "1px solid rgba(52,199,89,0.12)" }}
           >
-            <span className="text-emerald-400 text-sm">📄</span>
+            <span className="text-sm">📄</span>
             <div>
-              <p className="text-sm font-semibold text-emerald-300">Form 8833 Required — Treaty Disclosure</p>
-              <p className="text-xs text-slate-500">Treaty-Based Return Position Disclosure · IRC §6114</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>Form 8833 Required — Treaty Disclosure</p>
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Treaty-Based Return Position Disclosure · IRC §6114</p>
             </div>
           </div>
-          <div className="p-5 space-y-3" style={{ background: "rgba(52,211,153,0.02)" }}>
-            <p className="text-sm text-slate-300 leading-relaxed">
+          <div className="p-5 space-y-3" style={{ background: "var(--color-surface)" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
               A treaty exemption of{" "}
-              <strong className="text-emerald-300">
+              <strong style={{ color: "var(--color-success)" }}>
                 ${report.treaty_exempt_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </strong>
               {report.treaty_country ? ` under the US–${report.treaty_country} income tax treaty` : " under a US income tax treaty"}{" "}
-              was applied to your return. Under <strong className="text-slate-200">IRC §6114</strong>, you are required to disclose this treaty-based position by attaching <strong className="text-emerald-300">Form 8833</strong> to your tax return.
+              was applied to your return. Under <strong style={{ color: "var(--color-text-primary)" }}>IRC §6114</strong>, you are required to disclose this treaty-based position by attaching <strong style={{ color: "var(--color-success)" }}>Form 8833</strong> to your tax return.
             </p>
-            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(52,211,153,0.05)", border: "1px solid rgba(52,211,153,0.15)" }}>
-              <p className="text-xs font-mono tracking-widest uppercase text-emerald-400">Next Steps</p>
-              <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside leading-relaxed">
-                <li>Download <strong className="text-slate-300">Form 8833</strong> from irs.gov.</li>
+            <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: "rgba(52,199,89,0.04)", border: "1px solid rgba(52,199,89,0.15)" }}>
+              <p className="text-xs font-mono tracking-widest uppercase" style={{ color: "var(--color-success)" }}>Next Steps</p>
+              <ol className="text-xs space-y-1 list-decimal list-inside leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                <li>Download <strong style={{ color: "var(--color-text-primary)" }}>Form 8833</strong> from irs.gov.</li>
                 <li>Complete Part I — identify the treaty country and the treaty article relied upon.</li>
                 <li>In Part II, describe the treaty-based position and the amount of income excluded.</li>
                 <li>Attach the completed Form 8833 to your Form 1040-NR when filing.</li>
               </ol>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
               Failure to disclose can result in a penalty of $1,000 per return (IRC §6712).
               See IRS Publication 901 for treaty details.
             </p>
@@ -195,32 +193,30 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
         <div
           id="form-843-printable"
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(251,191,36,0.3)" }}
+          style={{ border: "1px solid rgba(255,159,10,0.25)" }}
         >
-          {/* Card header */}
           <div
             className="px-5 py-3 flex items-center justify-between gap-3"
-            style={{ background: "rgba(251,191,36,0.08)", borderBottom: "1px solid rgba(251,191,36,0.15)" }}
+            style={{ background: "rgba(255,159,10,0.06)", borderBottom: "1px solid rgba(255,159,10,0.12)" }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-amber-400 text-sm">⚠</span>
+              <span className="text-sm" style={{ color: "var(--color-warning)" }}>⚠</span>
               <div>
-                <p className="text-sm font-semibold text-amber-300">Form 843 — Pre-fill Draft</p>
-                <p className="text-xs text-slate-500">Claim for Refund and Request for Abatement · FICA Overcollection</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--color-warning)" }}>Form 843 — Pre-fill Draft</p>
+                <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Claim for Refund and Request for Abatement · FICA Overcollection</p>
               </div>
             </div>
             <button
               id="form-843-print-btn"
               onClick={() => window.print()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
-              style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", color: "#fbbf24" }}
+              style={{ background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.3)", color: "var(--color-warning)" }}
             >
               ↓ Download as PDF
             </button>
           </div>
 
-          {/* Form body */}
-          <div className="p-5 space-y-5" style={{ background: "rgba(251,191,36,0.02)" }}>
+          <div className="p-5 space-y-5" style={{ background: "var(--color-surface)" }}>
             {(() => {
               const f = (key: string) => ocr?.field_candidates[key]?.value ?? null;
               const empName   = f("employee_name");
@@ -232,9 +228,8 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
 
               return (
                 <>
-                  {/* Part I — Taxpayer (rendered once, pre-filled from OCR) */}
                   <div>
-                    <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "#64748b" }}>
+                    <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "var(--color-text-secondary)" }}>
                       Part I — Taxpayer
                     </p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -245,9 +240,8 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                     </div>
                   </div>
 
-                  {/* Part II — Employer (rendered once, pre-filled from OCR) */}
                   <div>
-                    <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "#64748b" }}>
+                    <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "var(--color-text-secondary)" }}>
                       Part II — Employer (from Box b &amp; c of your W-2)
                     </p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -256,7 +250,6 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                     </div>
                   </div>
 
-                  {/* Part III — one claim block per W-2 flag step */}
                   {w2FlagSteps.map((step) => {
                     const amountMatch = step.output_value.match(/\$[\d,]+(?:\.\d{2})?/);
                     const refundAmount = amountMatch ? amountMatch[0] : step.output_value;
@@ -264,7 +257,7 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                       `Exempt nonresident student — FICA taxes incorrectly withheld. Refund claimed under ${step.rule_reference}.`;
                     return (
                       <div key={step.step_number}>
-                        <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "#64748b" }}>
+                        <p className="text-xs font-mono tracking-widest uppercase mb-2" style={{ color: "var(--color-text-secondary)" }}>
                           Part III — Claim (pre-filled from your tax calculation)
                         </p>
                         <div className="space-y-2">
@@ -279,16 +272,15 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                     );
                   })}
 
-                  {/* Instructions */}
                   <div
-                    className="pt-3 mt-1 text-xs text-slate-500 leading-relaxed space-y-1"
-                    style={{ borderTop: "1px solid rgba(251,191,36,0.12)" }}
+                    className="pt-3 mt-1 text-xs leading-relaxed space-y-1"
+                    style={{ borderTop: "1px solid rgba(255,159,10,0.12)", color: "var(--color-text-secondary)" }}
                   >
                     <p>
-                      <span className="text-amber-400 font-semibold">Next steps:</span>{" "}
-                      Fill in any grey fields above. Attach a copy of your W-2 and a written statement from your employer confirming your exempt status. Mail the completed Form 843 to the IRS service center for your area.
+                      <span className="font-semibold" style={{ color: "var(--color-warning)" }}>Next steps:</span>{" "}
+                      Fill in any unfilled fields above. Attach a copy of your W-2 and a written statement from your employer confirming your exempt status. Mail the completed Form 843 to the IRS service center for your area.
                     </p>
-                    <p className="text-slate-600">
+                    <p style={{ opacity: 0.7 }}>
                       This is a pre-fill draft, not the official IRS form. Download the official Form 843 at irs.gov. The IRS typically processes refund claims within 6 months.
                     </p>
                   </div>
@@ -303,20 +295,20 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {(hasNecSteps || necFlagSteps.length > 0) && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(251,191,36,0.3)" }}
+          style={{ border: "1px solid rgba(255,159,10,0.25)" }}
         >
           <div
             className="px-5 py-3 flex items-center gap-2"
-            style={{ background: "rgba(251,191,36,0.08)", borderBottom: "1px solid rgba(251,191,36,0.15)" }}
+            style={{ background: "rgba(255,159,10,0.06)", borderBottom: "1px solid rgba(255,159,10,0.12)" }}
           >
-            <span className="text-amber-400 text-sm">📋</span>
+            <span className="text-sm">📋</span>
             <div>
-              <p className="text-sm font-semibold text-amber-300">Schedule SE — Self-Employment Tax Summary</p>
-              <p className="text-xs text-slate-500">Form 1040, Schedule SE · Self-Employment Tax Calculation</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-warning)" }}>Schedule SE — Self-Employment Tax Summary</p>
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Form 1040, Schedule SE · Self-Employment Tax Calculation</p>
             </div>
           </div>
 
-          <div className="p-5 space-y-4" style={{ background: "rgba(251,191,36,0.02)" }}>
+          <div className="p-5 space-y-4" style={{ background: "var(--color-surface)" }}>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Form843Field label="Net SE Income (92.35%)" value={seNetIncome ?? undefined} prefilled={!!seNetIncome} placeholder="From Step 3" />
               <Form843Field label="Self-Employment Tax (15.3%)" value={seTax ?? undefined} prefilled={!!seTax} placeholder="From Step 4" />
@@ -329,10 +321,10 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                   <div
                     key={step.step_number}
                     className="rounded-lg px-4 py-3 text-sm"
-                    style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}
+                    style={{ background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.18)" }}
                   >
-                    <p className="text-amber-300 font-semibold text-xs font-mono mb-1">{step.label}</p>
-                    <p className="text-slate-400 leading-relaxed">
+                    <p className="font-semibold text-xs font-mono mb-1" style={{ color: "var(--color-warning)" }}>{step.label}</p>
+                    <p className="leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                       {step.explanation || `Advisory: ${step.rule_reference}`}
                     </p>
                   </div>
@@ -341,11 +333,11 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
             )}
 
             <div
-              className="pt-3 mt-1 text-xs text-slate-500 leading-relaxed"
-              style={{ borderTop: "1px solid rgba(251,191,36,0.12)" }}
+              className="pt-3 mt-1 text-xs leading-relaxed"
+              style={{ borderTop: "1px solid rgba(255,159,10,0.12)", color: "var(--color-text-secondary)" }}
             >
               <p>
-                <span className="text-amber-400 font-semibold">Next steps:</span>{" "}
+                <span className="font-semibold" style={{ color: "var(--color-warning)" }}>Next steps:</span>{" "}
                 Report self-employment income on Schedule C (Form 1040). Use the SE tax amount above on Schedule SE to calculate your Social Security and Medicare tax. The deductible half reduces your adjusted gross income on Form 1040, Line 15.
               </p>
             </div>
@@ -357,52 +349,52 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {(stateSteps.length > 0 || stateFlagSteps.length > 0) && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(96,165,250,0.3)" }}
+          style={{ border: "1px solid rgba(0,113,227,0.2)" }}
         >
           <div
             className="px-5 py-3 flex items-center gap-2"
-            style={{ background: "rgba(96,165,250,0.08)", borderBottom: "1px solid rgba(96,165,250,0.15)" }}
+            style={{ background: "rgba(0,113,227,0.06)", borderBottom: "1px solid rgba(0,113,227,0.12)" }}
           >
-            <span className="text-blue-400 text-sm">🏛</span>
+            <span className="text-sm">🏛</span>
             <div>
-              <p className="text-sm font-semibold text-blue-300">State Tax Estimate</p>
-              <p className="text-xs text-slate-500">State income tax ledger · 2025 estimate only</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>State Tax Estimate</p>
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>State income tax ledger · 2025 estimate only</p>
             </div>
           </div>
 
-          <div className="overflow-hidden" style={{ background: "rgba(96,165,250,0.02)" }}>
+          <div className="overflow-hidden" style={{ background: "var(--color-surface)" }}>
             {stateSteps.map((step) => (
               <div
                 key={step.step_number}
                 className="grid grid-cols-[2rem_1fr_auto] gap-3 px-4 py-3 text-sm"
-                style={{ borderBottom: "1px solid rgba(96,165,250,0.06)" }}
+                style={{ borderBottom: "1px solid var(--color-border)" }}
               >
-                <span className="text-xs font-mono text-slate-600 pt-0.5">{step.step_number}</span>
+                <span className="text-xs font-mono pt-0.5" style={{ color: "var(--color-text-secondary)" }}>{step.step_number}</span>
                 <div>
-                  <p className="text-slate-200">{step.label}</p>
-                  <p className="text-xs text-slate-600 font-mono mt-0.5">{step.rule_reference}</p>
+                  <p style={{ color: "var(--color-text-primary)" }}>{step.label}</p>
+                  <p className="text-xs font-mono mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{step.rule_reference}</p>
                 </div>
-                <p className="text-sm font-mono text-slate-100 whitespace-nowrap text-right">{step.output_value}</p>
+                <p className="text-sm font-mono whitespace-nowrap text-right" style={{ color: "var(--color-text-primary)" }}>{step.output_value}</p>
               </div>
             ))}
             {stateFlagSteps.map((step) => (
               <div
                 key={step.step_number}
                 className="rounded-lg mx-4 my-3 px-4 py-3 text-sm"
-                style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)" }}
+                style={{ background: "rgba(0,113,227,0.06)", border: "1px solid rgba(0,113,227,0.15)" }}
               >
-                <p className="text-blue-300 font-semibold text-xs font-mono mb-1">{step.label}</p>
-                <p className="text-slate-400 leading-relaxed">
+                <p className="font-semibold text-xs font-mono mb-1" style={{ color: "var(--color-accent)" }}>{step.label}</p>
+                <p className="leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                   {step.explanation || step.output_value}
                 </p>
               </div>
             ))}
             <div
-              className="px-5 py-3 text-xs text-slate-500 leading-relaxed"
-              style={{ borderTop: "1px solid rgba(96,165,250,0.08)" }}
+              className="px-5 py-3 text-xs leading-relaxed"
+              style={{ borderTop: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
             >
               <p>
-                <span className="text-blue-400 font-semibold">Note:</span>{" "}
+                <span className="font-semibold" style={{ color: "var(--color-accent)" }}>Note:</span>{" "}
                 State estimate uses 2025 brackets and does not account for state-specific credits, deductions, or withholding. Consult a tax professional for accurate state filing.
               </p>
             </div>
@@ -414,11 +406,11 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {normalSteps.length > 0 && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ border: "1px solid var(--color-border)" }}
         >
           <div
             className="grid grid-cols-[2rem_1fr_auto] gap-3 px-4 py-2.5 text-xs font-mono tracking-widest uppercase"
-            style={{ background: "rgba(15,23,42,0.9)", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "#475569" }}
+            style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
           >
             <span>#</span>
             <span>Step</span>
@@ -428,22 +420,24 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
           {normalSteps.map((step) => {
             const isOpen = expanded.has(step.step_number);
             return (
-              <div key={step.step_number} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <div key={step.step_number} style={{ borderBottom: "1px solid var(--color-border)" }}>
                 <button
                   onClick={() => toggleRow(step.step_number)}
                   aria-expanded={isOpen}
                   aria-controls={`step-detail-${step.step_number}`}
-                  className="w-full grid grid-cols-[2rem_1fr_auto] gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
-                  style={{ background: "rgba(13,20,36,0.5)" }}
+                  className="w-full grid grid-cols-[2rem_1fr_auto] gap-3 px-4 py-3 text-left transition-colors"
+                  style={{ background: "var(--color-surface)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--color-surface)")}
                 >
-                  <span className="text-xs font-mono text-slate-600 pt-0.5">{step.step_number}</span>
+                  <span className="text-xs font-mono pt-0.5" style={{ color: "var(--color-text-secondary)" }}>{step.step_number}</span>
                   <div>
-                    <p className="text-sm text-slate-200">{step.label}</p>
-                    <p className="text-xs text-slate-600 font-mono mt-0.5">{step.rule_reference}</p>
+                    <p className="text-sm" style={{ color: "var(--color-text-primary)" }}>{step.label}</p>
+                    <p className="text-xs font-mono mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{step.rule_reference}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-slate-100 whitespace-nowrap">{step.output_value}</p>
-                    <p className="text-xs text-slate-700 mt-0.5">{isOpen ? "▲" : "▼"}</p>
+                    <p className="text-sm font-mono whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>{step.output_value}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{isOpen ? "▲" : "▼"}</p>
                   </div>
                 </button>
 
@@ -451,13 +445,13 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
                   <div
                     id={`step-detail-${step.step_number}`}
                     role="region"
-                    className="px-4 py-3 text-sm text-slate-400 leading-relaxed"
-                    style={{ background: "rgba(6,11,20,0.6)", borderTop: "1px solid rgba(255,255,255,0.04)" }}
+                    className="px-4 py-3 text-sm leading-relaxed"
+                    style={{ background: "var(--color-bg)", borderTop: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
                   >
-                    <span className="text-xs font-mono text-slate-600 mr-2">Input:</span>
-                    <span className="font-mono text-slate-500">{step.input_value}</span>
+                    <span className="text-xs font-mono mr-2" style={{ opacity: 0.7 }}>Input:</span>
+                    <span className="font-mono">{step.input_value}</span>
                     {step.explanation && (
-                      <p className="mt-2 text-slate-400">{step.explanation}</p>
+                      <p className="mt-2">{step.explanation}</p>
                     )}
                   </div>
                 )}
@@ -471,24 +465,24 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
       {report.validation_results.length > 0 && (
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ border: "1px solid var(--color-border)" }}
         >
           <div
             className="px-4 py-2.5"
-            style={{ background: "rgba(15,23,42,0.8)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border)" }}
           >
-            <span className="text-xs font-mono tracking-widest uppercase" style={{ color: "#fb923c" }}>
+            <span className="text-xs font-mono tracking-widest uppercase" style={{ color: "var(--color-warning)" }}>
               Validation Notes
             </span>
           </div>
-          <div className="px-4 py-3 space-y-2" style={{ background: "rgba(13,20,36,0.5)" }}>
+          <div className="px-4 py-3 space-y-2" style={{ background: "var(--color-surface)" }}>
             {report.validation_results.map((v, i) => (
               <div key={i} className="flex gap-2 text-sm">
                 <span className="font-mono text-xs flex-shrink-0 mt-0.5"
-                  style={{ color: v.severity === "error" ? "#f87171" : "#fbbf24" }}>
+                  style={{ color: v.severity === "error" ? "var(--color-danger)" : "var(--color-warning)" }}>
                   {v.severity === "error" ? "ERR" : "WRN"}
                 </span>
-                <span className="text-slate-400">{v.message}</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{v.message}</span>
               </div>
             ))}
           </div>
@@ -507,8 +501,15 @@ export function CalculationLedgerStep({ report, ocr }: { report: TaxReport; ocr?
 
       <button
         onClick={() => window.location.reload()}
-        className="w-full py-3 rounded-xl text-slate-400 hover:text-slate-200 font-medium text-sm transition-all"
-        style={{ border: "1px solid rgba(71,85,105,0.4)" }}
+        className="w-full py-3 rounded-xl font-medium text-sm transition-all"
+        style={{
+          border: "1px solid var(--color-border)",
+          color: "var(--color-text-secondary)",
+          background: "transparent",
+          cursor: "pointer",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
       >
         Review Another Document
       </button>

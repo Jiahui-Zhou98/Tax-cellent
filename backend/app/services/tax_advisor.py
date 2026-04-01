@@ -127,6 +127,15 @@ async def _add_explanations(
         # LLM unavailable (Ollama down, timeout, etc.) — fall back to templates
         return [s.model_copy(update={"explanation": _template_explanation(s)}) for s in steps]
 
+    # Normalize: some LLMs (e.g. Gemini) return a list of objects instead of the
+    # expected dict keyed by step_number. Convert to dict so the merge below works.
+    if isinstance(data, list):
+        data = {
+            str(item.get("step_number", "")): item.get("explanation", "")
+            for item in data
+            if isinstance(item, dict)
+        }
+
     # Validate and merge explanations
     result = []
     for step in steps:
