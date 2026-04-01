@@ -86,6 +86,17 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+/* Two-panel layout: sidebar + main content */
+.app-layout-panels {
+  display: flex;
+  flex-direction: column; /* mobile: top-bar sidebar stacked above content */
+}
+@media (min-width: 480px) {
+  .app-layout-panels {
+    flex-direction: row; /* 480px+: vertical sidebar beside content */
+  }
+}
+
 /* StepSidebar responsive layout */
 .step-sidebar {
   display: flex;

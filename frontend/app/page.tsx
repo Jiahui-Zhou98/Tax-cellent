@@ -185,8 +185,9 @@ export default function Home() {
   return (
     <div className="animate-fade-in">
       <DeadlineBanner visaType={visaType} hasIncome={!zeroIncomePath} />
-      {/* Two-panel layout: sidebar + content */}
-      <div className="flex" style={{ minHeight: "calc(100vh - 57px)" }}>
+      {/* Two-panel layout: sidebar + content. flex-col on mobile (sidebar is top bar),
+          flex-row at 480px+ (sidebar is vertical panel on the left). */}
+      <div className="app-layout-panels" style={{ minHeight: "calc(100vh - 57px)" }}>
         <StepSidebar current={sidebarCurrent} />
         <main
           className="flex-1 overflow-y-auto p-6 md:p-10"
