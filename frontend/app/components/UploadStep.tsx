@@ -122,7 +122,7 @@ export function UploadStep({
             <p className="text-sm font-medium text-indigo-400">AI-Powered Extraction</p>
             <button
               onClick={() => setShowAiBanner(false)}
-              className="text-xs text-slate-600 hover:text-slate-400"
+              className="cursor-pointer px-2 py-2 text-xs text-slate-600 hover:text-slate-400"
             >
               dismiss
             </button>
