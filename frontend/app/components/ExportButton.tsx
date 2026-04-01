@@ -71,23 +71,21 @@ export function ExportButton({ documentId }: ExportButtonProps) {
       <button
         onClick={handleDownload}
         disabled={loading || !acknowledged}
-        className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+        className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40"
         style={{
-          background:
-            loading || !acknowledged
-              ? "rgba(99,102,241,0.08)"
-              : "rgba(99,102,241,0.18)",
-          border: "1px solid rgba(99,102,241,0.45)",
-          color: loading || !acknowledged ? "#64748b" : "#a5b4fc",
+          background: loading || !acknowledged ? "rgba(0,113,227,0.08)" : "var(--color-accent)",
+          border: "none",
+          color: loading || !acknowledged ? "var(--color-text-secondary)" : "#FFFFFF",
           cursor: loading || !acknowledged ? "not-allowed" : "pointer",
-          opacity: acknowledged ? 1 : 0.6,
         }}
+        onMouseEnter={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+        onMouseLeave={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
       >
         {loading ? (
           <>
             <span
               className="inline-block w-4 h-4 rounded-full border-2 animate-spin"
-              style={{ borderColor: "#818cf8 transparent transparent transparent" }}
+              style={{ borderColor: "rgba(255,255,255,0.3)", borderTopColor: "#FFFFFF" }}
             />
             Generating PDF...
           </>
@@ -100,10 +98,10 @@ export function ExportButton({ documentId }: ExportButtonProps) {
       </button>
 
       {error && (
-        <p className="text-xs text-red-400 text-center px-2">{error}</p>
+        <p className="text-xs text-center px-2" style={{ color: "var(--color-danger)" }}>{error}</p>
       )}
 
-      <p className="text-xs text-slate-600 text-center">
+      <p className="text-xs text-center" style={{ color: "var(--color-text-secondary)" }}>
         Includes Form 1040-NR · Form 8843 · Filing Instructions
       </p>
     </div>

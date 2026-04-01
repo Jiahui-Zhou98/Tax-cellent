@@ -46,8 +46,10 @@ export function AnalysisStep({
   return (
     <div className="space-y-8 animate-fade-in text-center">
       <div>
-        <h2 className="text-2xl font-semibold text-white tracking-tight">Calculating…</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+          Calculating…
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           Applying 2025 IRS rules with {providerLabel} for the explanation layer.
         </p>
       </div>
@@ -56,36 +58,53 @@ export function AnalysisStep({
       <div className="flex justify-center" role="status" aria-label="Analyzing document">
         <div
           className="w-16 h-16 rounded-full border-2 animate-spin"
-          style={{ borderColor: "rgba(34,211,238,0.15)", borderTopColor: "#22d3ee" }}
+          style={{
+            borderColor: "rgba(0,113,227,0.15)",
+            borderTopColor: "var(--color-accent)",
+          }}
         />
       </div>
 
       {/* Rotating hint */}
-      <p className="text-sm font-mono text-slate-500 min-h-[1.5rem] transition-all" aria-live="polite" aria-atomic="true">
+      <p
+        className="text-sm font-mono min-h-[1.5rem] transition-all"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
         {ANALYSIS_HINTS[hintIndex]}
       </p>
 
       {error && (
         <div className="space-y-3">
           <div
-            className="rounded-xl p-4 text-sm text-red-400 text-left"
-            style={{ background: "rgba(127,29,29,0.2)", border: "1px solid rgba(239,68,68,0.2)" }}
+            className="rounded-xl p-4 text-sm text-left"
+            style={{
+              background: "rgba(255,59,48,0.06)",
+              border: "1px solid rgba(255,59,48,0.2)",
+              color: "var(--color-danger)",
+            }}
           >
-            <span className="font-mono text-red-500 mr-2">ERROR</span>
+            <span className="font-mono mr-2">ERROR</span>
             {error}
           </div>
           <div className="flex gap-3 justify-center">
             <button
               onClick={onBack}
               className="py-2.5 px-5 rounded-xl text-sm font-semibold transition-all"
-              style={{ background: "rgba(71,85,105,0.2)", border: "1px solid rgba(71,85,105,0.3)", color: "#94a3b8" }}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-primary)",
+                cursor: "pointer",
+              }}
             >
               ← Back to Settings
             </button>
             <button
               onClick={() => { setHintIndex(0); setRetryCount((c) => c + 1); }}
               className="py-2.5 px-5 rounded-xl text-white font-semibold text-sm transition-all"
-              style={{ background: "#2563eb", boxShadow: "0 0 22px rgba(59,130,246,0.45)" }}
+              style={{ background: "var(--color-accent)", cursor: "pointer" }}
             >
               ↺ Retry
             </button>
@@ -93,7 +112,7 @@ export function AnalysisStep({
         </div>
       )}
 
-      <p className="text-xs text-slate-700 font-mono">
+      <p className="text-xs font-mono" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
         {preferences.provider === "ollama"
           ? "Running locally — this may take 30–90 seconds"
           : "Calling cloud API — usually 5–15 seconds"}

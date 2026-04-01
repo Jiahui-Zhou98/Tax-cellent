@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { saveContext } from "../lib/api";
 import { NRA_VISA_TYPES } from "../lib/constants";
-import { inputStyle, glowBtn } from "../styles";
+import { inputStyle } from "../styles";
 import { US_UNIVERSITIES } from "../lib/universities";
 import { SectionCard } from "./SectionCard";
 
@@ -139,16 +139,18 @@ export function ContextStep({
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-semibold text-white tracking-tight">Taxpayer Context</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+          Taxpayer Context
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           Used to tailor residency checks and special tax rules when relevant. Domestic and international filers are both supported.
         </p>
       </div>
 
-      <SectionCard title="Residency / Status" accent="#22d3ee">
+      <SectionCard title="Residency / Status" variant="default">
         <div className="space-y-3">
           <div>
-            <label htmlFor="visa-type-select" className="text-xs text-slate-500 mb-1.5 block">
+            <label htmlFor="visa-type-select" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
               Tax residency or visa status during the tax year
             </label>
             <select
@@ -158,22 +160,20 @@ export function ContextStep({
               style={inputStyle}
             >
               {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value} style={{ background: "#0d1424" }}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
             {isDomesticStatus
               ? "Domestic filer selected. International-only residency questions are hidden below."
               : "We use this to determine whether nonresident, treaty, or FICA-related rules may apply."}
           </p>
           {showResidencyTravelQuestions && (
             <div>
-              <label htmlFor="entry-date-input" className="text-xs text-slate-500 mb-1.5 block">
+              <label htmlFor="entry-date-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
                 First year you entered the US in the status above
-                <span className="text-slate-700 ml-1">(if relevant, e.g. 2021)</span>
+                <span className="ml-1" style={{ color: "var(--color-text-secondary)", opacity: 0.6 }}>(if relevant, e.g. 2021)</span>
               </label>
               <input
                 id="entry-date-input"
@@ -187,9 +187,9 @@ export function ContextStep({
           )}
           {showStudentQuestions && (
             <div>
-              <label htmlFor="country-of-origin-input" className="text-xs text-slate-500 mb-1.5 block">
-                Country of origin <span className="text-slate-700">(ISO 2-letter code, e.g. CN, IN, KR)</span>
-                <span className="text-slate-600 ml-1">— used for tax treaty lookup</span>
+              <label htmlFor="country-of-origin-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+                Country of origin <span style={{ opacity: 0.7 }}>(ISO 2-letter code, e.g. CN, IN, KR)</span>
+                <span className="ml-1" style={{ opacity: 0.6 }}>— used for tax treaty lookup</span>
               </label>
               <input
                 id="country-of-origin-input"
@@ -206,8 +206,8 @@ export function ContextStep({
       </SectionCard>
 
       {showResidencyTravelQuestions && (
-        <SectionCard title="Days Present in the US" accent="#818cf8">
-          <p className="text-xs text-slate-600 mb-3">
+        <SectionCard title="Days Present in the US" variant="default">
+          <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
             Count every day you were physically inside the US. Used for substantial presence and nonresident checks when applicable.
           </p>
           <div className="space-y-3">
@@ -217,7 +217,7 @@ export function ContextStep({
               { label: "Second prior year", value: days2, set: setDays2, id: "days-second-prior" },
             ].map(({ label, value, set, id }) => (
               <div key={label} className="flex items-center gap-3">
-                <label htmlFor={id} className="text-xs text-slate-500 w-36 flex-shrink-0">{label}</label>
+                <label htmlFor={id} className="text-xs w-36 flex-shrink-0" style={{ color: "var(--color-text-secondary)" }}>{label}</label>
                 <input
                   id={id}
                   type="number"
@@ -234,7 +234,7 @@ export function ContextStep({
         </SectionCard>
       )}
 
-      <SectionCard title="Additional Context" accent="#34d399">
+      <SectionCard title="Additional Context" variant="success">
         <div className="space-y-3">
           {[
             ...(!isDomesticStatus
@@ -252,20 +252,20 @@ export function ContextStep({
               tabIndex={0}
               onClick={() => set(!value)}
               onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); set(!value); } }}
-              className="flex items-start gap-3 cursor-pointer group outline-none focus-visible:ring-1 focus-visible:ring-cyan-500 rounded"
+              className="flex items-start gap-3 cursor-pointer group outline-none rounded"
             >
               <div
                 className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                 aria-hidden="true"
                 style={
                   value
-                    ? { background: "rgba(34,211,238,0.2)", border: "1.5px solid rgba(34,211,238,0.7)" }
-                    : { background: "transparent", border: "1.5px solid rgba(71,85,105,0.5)" }
+                    ? { background: "rgba(0,113,227,0.12)", border: "1.5px solid var(--color-accent)" }
+                    : { background: "transparent", border: "1.5px solid var(--color-border)" }
                 }
               >
-                {value && <span className="text-xs" style={{ color: "#22d3ee" }}>✓</span>}
+                {value && <span className="text-xs" style={{ color: "var(--color-accent)" }}>✓</span>}
               </div>
-              <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors leading-snug">
+              <span className="text-sm leading-snug transition-colors" style={{ color: "var(--color-text-secondary)" }}>
                 {label}
               </span>
             </div>
@@ -274,11 +274,11 @@ export function ContextStep({
       </SectionCard>
 
       {wantsState && (
-        <SectionCard title="State for Tax Estimate" accent="#60a5fa">
+        <SectionCard title="State for Tax Estimate" variant="default">
           <div>
-            <label htmlFor="state-select" className="text-xs text-slate-500 mb-1.5 block">
+            <label htmlFor="state-select" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
               Which state do you file in?
-              <span className="text-slate-700 ml-1">(used only for the optional state estimate)</span>
+              <span className="ml-1" style={{ opacity: 0.7 }}>(used only for the optional state estimate)</span>
             </label>
             <select
               id="state-select"
@@ -287,9 +287,7 @@ export function ContextStep({
               style={inputStyle}
             >
               {STATE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value} style={{ background: "#0d1424" }}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
@@ -297,15 +295,15 @@ export function ContextStep({
       )}
 
       {showInstitutionFields && (
-        <SectionCard title="Academic Institution (Form 8843)" accent="#818cf8">
-          <p className="text-xs text-slate-600 mb-3">
+        <SectionCard title="Academic Institution (Form 8843)" variant="default">
+          <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
             Required for Form 8843 (filed by all {visaType} visa holders, even with income).
             Leave blank if unknown — you can fill it in the Form 8843 step.
           </p>
           <div className="space-y-3">
             <div>
-              <label htmlFor="ctx-inst-name" className="text-xs text-slate-500 mb-1.5 block">
-                School / university name <span className="text-slate-700">(Line 4a)</span>
+              <label htmlFor="ctx-inst-name" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+                School / university name <span style={{ opacity: 0.7 }}>(Line 4a)</span>
               </label>
               <input
                 id="ctx-inst-name"
@@ -332,8 +330,8 @@ export function ContextStep({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="ctx-inst-city" className="text-xs text-slate-500 mb-1.5 block">
-                  City <span className="text-slate-700">(4b)</span>
+                <label htmlFor="ctx-inst-city" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+                  City <span style={{ opacity: 0.7 }}>(4b)</span>
                 </label>
                 <input
                   id="ctx-inst-city"
@@ -345,8 +343,8 @@ export function ContextStep({
                 />
               </div>
               <div>
-                <label htmlFor="ctx-inst-state" className="text-xs text-slate-500 mb-1.5 block">
-                  State <span className="text-slate-700">(4c, 2-letter)</span>
+                <label htmlFor="ctx-inst-state" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+                  State <span style={{ opacity: 0.7 }}>(4c, 2-letter)</span>
                 </label>
                 <input
                   id="ctx-inst-state"
@@ -364,13 +362,13 @@ export function ContextStep({
       )}
 
       {isNEC && (
-        <SectionCard title="Self-Employment Expenses (1099-NEC)" accent="#fbbf24">
-          <p className="text-xs text-slate-500 mb-3">
+        <SectionCard title="Self-Employment Expenses (1099-NEC)" variant="warning">
+          <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
             If you had deductible business expenses (home office, equipment, software, etc.), enter the total here.
             This reduces your net self-employment income and lowers your SE tax. Leave blank if none.
           </p>
           <div>
-            <label htmlFor="nec-expenses-input" className="text-xs text-slate-500 mb-1.5 block">
+            <label htmlFor="nec-expenses-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
               Estimated business expenses (optional)
             </label>
             <input
@@ -390,10 +388,14 @@ export function ContextStep({
 
       {error && (
         <div
-          className="rounded-xl p-4 text-sm text-red-400"
-          style={{ background: "rgba(127,29,29,0.2)", border: "1px solid rgba(239,68,68,0.2)" }}
+          className="rounded-xl p-4 text-sm"
+          style={{
+            background: "rgba(255,59,48,0.06)",
+            border: "1px solid rgba(255,59,48,0.2)",
+            color: "var(--color-danger)",
+          }}
         >
-          <span className="font-mono text-red-500 mr-2">ERROR</span>
+          <span className="font-mono mr-2">ERROR</span>
           {error}
         </div>
       )}
@@ -403,7 +405,12 @@ export function ContextStep({
           onClick={onBack}
           disabled={loading}
           className="py-3 px-5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
-          style={{ background: "rgba(71,85,105,0.2)", border: "1px solid rgba(71,85,105,0.3)", color: "#94a3b8" }}
+          style={{
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-primary)",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           ← Back
         </button>
@@ -411,7 +418,7 @@ export function ContextStep({
           onClick={handleSubmit}
           disabled={loading}
           className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40"
-          style={loading ? { background: "#2563eb", opacity: 0.6 } : { background: "#2563eb", ...glowBtn() }}
+          style={{ background: loading ? "#AEAEB2" : "var(--color-accent)", cursor: loading ? "not-allowed" : "pointer" }}
         >
           {loading ? "Saving…" : "Continue to Field Review →"}
         </button>

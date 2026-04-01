@@ -1,7 +1,6 @@
 "use client";
 
 import { type ValidationOutput } from "../lib/api";
-import { glowBtn } from "../styles";
 
 export function ValidationStep({
   validation,
@@ -13,17 +12,19 @@ export function ValidationStep({
   onBack: () => void;
 }) {
   const statusCfg = {
-    ok:      { label: "PASS", icon: "✓", color: "#34d399", bg: "rgba(52,211,153,0.06)", bd: "rgba(52,211,153,0.2)" },
-    warning: { label: "WARN", icon: "!", color: "#fbbf24", bg: "rgba(251,191,36,0.06)", bd: "rgba(251,191,36,0.2)" },
-    error:   { label: "FAIL", icon: "✕", color: "#f87171", bg: "rgba(248,113,113,0.06)", bd: "rgba(248,113,113,0.2)" },
+    ok:      { label: "PASS", icon: "✓", color: "var(--color-success)", bg: "rgba(52,199,89,0.08)",  bd: "rgba(52,199,89,0.25)"  },
+    warning: { label: "WARN", icon: "!", color: "var(--color-warning)", bg: "rgba(255,159,10,0.08)", bd: "rgba(255,159,10,0.25)" },
+    error:   { label: "FAIL", icon: "✕", color: "var(--color-danger)",  bg: "rgba(255,59,48,0.08)",  bd: "rgba(255,59,48,0.25)"  },
   };
   const cfg = statusCfg[validation.status as keyof typeof statusCfg] ?? statusCfg.warning;
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-semibold text-white tracking-tight">Validation Results</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+          Validation Results
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           Rule checks passed. Ready to configure your AI provider.
         </p>
       </div>
@@ -43,7 +44,7 @@ export function ValidationStep({
           <p className="font-mono font-bold text-sm" style={{ color: cfg.color }}>
             {cfg.label}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
             {validation.issues.length === 0
               ? "All checks passed"
               : `${validation.issues.length} issue${validation.issues.length !== 1 ? "s" : ""} found`}
@@ -60,19 +61,19 @@ export function ValidationStep({
               className="flex gap-3 px-4 py-3 rounded-xl"
               style={
                 issue.severity === "error"
-                  ? { background: "rgba(127,29,29,0.15)", border: "1px solid rgba(239,68,68,0.15)" }
-                  : { background: "rgba(120,53,15,0.15)", border: "1px solid rgba(251,191,36,0.15)" }
+                  ? { background: "rgba(255,59,48,0.06)", border: "1px solid rgba(255,59,48,0.15)" }
+                  : { background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.15)" }
               }
             >
               <span
                 className="font-mono text-xs font-bold flex-shrink-0 mt-0.5"
-                style={{ color: issue.severity === "error" ? "#f87171" : "#fbbf24" }}
+                style={{ color: issue.severity === "error" ? "var(--color-danger)" : "var(--color-warning)" }}
               >
                 {issue.severity === "error" ? "ERR" : "WRN"}
               </span>
               <div>
-                <p className="text-sm text-slate-200">{issue.message}</p>
-                <p className="text-xs font-mono text-slate-600 mt-0.5">
+                <p className="text-sm" style={{ color: "var(--color-text-primary)" }}>{issue.message}</p>
+                <p className="text-xs font-mono mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                   {issue.field} · {issue.type}
                 </p>
               </div>
@@ -85,14 +86,19 @@ export function ValidationStep({
         <button
           onClick={onBack}
           className="py-3.5 px-5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: "rgba(71,85,105,0.2)", border: "1px solid rgba(71,85,105,0.3)", color: "#94a3b8" }}
+          style={{
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-primary)",
+            cursor: "pointer",
+          }}
         >
           ← Back
         </button>
         <button
           onClick={onNext}
           className="flex-1 py-3.5 rounded-xl text-white font-semibold text-sm transition-all"
-          style={{ background: "#2563eb", ...glowBtn() }}
+          style={{ background: "var(--color-accent)", cursor: "pointer" }}
         >
           Choose AI Provider →
         </button>

@@ -212,7 +212,8 @@ async def chat_json(
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r'\{.*\}', text, re.DOTALL)
+        # Try to extract either a JSON object or array from the response
+        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
         if match:
             return json.loads(match.group())
         raise ValueError(f"Could not parse JSON from model response: {text[:200]}")

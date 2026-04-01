@@ -29,7 +29,7 @@ function getDeadline(
     return {
       date: new Date(`${year}-04-15`),
       label: "April 15",
-      note: "Federal income tax filing deadline",
+      note: "File by this date to avoid IRS late-filing penalties",
     };
   }
 
@@ -39,21 +39,21 @@ function getDeadline(
       return {
         date: new Date(`${year}-06-15`),
         label: "June 15",
-        note: "Form 8843 filing deadline (NRA with no US-source income)",
+        note: "Form 8843 deadline — no U.S. income this year",
       };
     }
     // NRA with US-source income → April 15 (Form 1040-NR).
     return {
       date: new Date(`${year}-04-15`),
       label: "April 15",
-      note: "Form 1040-NR filing deadline (NRA with US-source income)",
+      note: "Form 1040-NR deadline — file your U.S. income tax return",
     };
   }
 
   return {
     date: new Date(`${year}-04-15`),
     label: "April 15",
-    note: "Federal income tax filing deadline",
+    note: "File by this date to avoid IRS late-filing penalties",
   };
 }
 
