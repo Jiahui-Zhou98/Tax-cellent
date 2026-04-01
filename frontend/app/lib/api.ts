@@ -69,12 +69,12 @@ export interface Form8843Data {
 export interface AnalysisPreferences {
   provider: "ollama" | "openai" | "anthropic" | "gemini";
   model?: string;
-  api_key?: string;  // Session-only; never persisted
+  api_key?: string; // Session-only; never persisted
 }
 
 export interface ProviderStatus {
   configured: boolean;
-  running?: boolean;  // Ollama only
+  running?: boolean; // Ollama only
 }
 
 export interface HealthStatus {
@@ -119,7 +119,7 @@ export interface SessionState {
 export async function uploadDocument(
   file: File,
   aiApiKey?: string,
-  aiModel?: string,
+  aiModel?: string
 ): Promise<OCROutput> {
   const form = new FormData();
   form.append("file", file);
@@ -133,10 +133,7 @@ export async function uploadDocument(
   return res.json();
 }
 
-export async function saveContext(
-  document_id: string,
-  context: UserContext
-): Promise<void> {
+export async function saveContext(document_id: string, context: UserContext): Promise<void> {
   const res = await fetch(`${API_BASE}/api/context/${document_id}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

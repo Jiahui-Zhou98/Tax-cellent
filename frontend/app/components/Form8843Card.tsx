@@ -51,32 +51,44 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
       <div className="space-y-4">
         {/* Eligibility summary */}
         <div
-          className="rounded-lg p-3 text-xs space-y-1"
+          className="space-y-1 rounded-lg p-3 text-xs"
           style={{ background: "rgba(0,113,227,0.06)", border: "1px solid rgba(0,113,227,0.15)" }}
         >
           <div className="flex items-center gap-2">
             <span style={{ color: "var(--color-accent)" }}>✓</span>
-            <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>You are required to file Form 8843</span>
+            <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>
+              You are required to file Form 8843
+            </span>
           </div>
           <p className="pl-5" style={{ color: "var(--color-text-secondary)" }}>
-            All {data.visa_type} visa holders must file this statement even with zero US income.
-            It is not a tax return — it is a residency exemption statement.
+            All {data.visa_type} visa holders must file this statement even with zero US income. It
+            is not a tax return — it is a residency exemption statement.
           </p>
         </div>
 
         {/* Key details grid */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <span className="block" style={{ color: "var(--color-text-secondary)" }}>Visa type</span>
-            <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>{data.visa_type}</span>
+            <span className="block" style={{ color: "var(--color-text-secondary)" }}>
+              Visa type
+            </span>
+            <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>
+              {data.visa_type}
+            </span>
           </div>
           <div>
-            <span className="block" style={{ color: "var(--color-text-secondary)" }}>Tax year(s)</span>
-            <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>{allYears.join(", ")}</span>
+            <span className="block" style={{ color: "var(--color-text-secondary)" }}>
+              Tax year(s)
+            </span>
+            <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>
+              {allYears.join(", ")}
+            </span>
           </div>
           {data.institution_name && (
             <div className="col-span-2">
-              <span className="block" style={{ color: "var(--color-text-secondary)" }}>Institution</span>
+              <span className="block" style={{ color: "var(--color-text-secondary)" }}>
+                Institution
+              </span>
               <span style={{ color: "var(--color-text-primary)" }}>
                 {data.institution_name}
                 {data.institution_city ? `, ${data.institution_city}` : ""}
@@ -86,7 +98,9 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
           )}
           {data.exempt_prior_years.length > 0 && (
             <div className="col-span-2">
-              <span className="block" style={{ color: "var(--color-text-secondary)" }}>Prior exempt years (Line 7)</span>
+              <span className="block" style={{ color: "var(--color-text-secondary)" }}>
+                Prior exempt years (Line 7)
+              </span>
               <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>
                 {data.exempt_prior_years.sort((a, b) => a - b).join(", ")}
               </span>
@@ -96,10 +110,12 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
 
         {/* Mailing instructions */}
         <div
-          className="rounded-lg p-3 text-xs space-y-1"
+          className="space-y-1 rounded-lg p-3 text-xs"
           style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
         >
-          <p className="font-medium" style={{ color: "var(--color-text-primary)" }}>{mailInfo.label}</p>
+          <p className="font-medium" style={{ color: "var(--color-text-primary)" }}>
+            {mailInfo.label}
+          </p>
           <p style={{ color: "var(--color-text-secondary)" }}>
             Mail to:{" "}
             <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>
@@ -107,7 +123,8 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
             </span>
           </p>
           <p style={{ color: "var(--color-text-secondary)" }}>
-            Deadline: <span style={{ color: "var(--color-text-primary)" }}>{mailInfo.deadline}</span>
+            Deadline:{" "}
+            <span style={{ color: "var(--color-text-primary)" }}>{mailInfo.deadline}</span>
             &nbsp;·&nbsp;Form 8843 cannot be e-filed.
           </p>
         </div>
@@ -116,12 +133,17 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
         {hasCatchUp && (
           <div
             className="rounded-lg p-3 text-xs"
-            style={{ background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.2)" }}
+            style={{
+              background: "rgba(255,159,10,0.06)",
+              border: "1px solid rgba(255,159,10,0.2)",
+            }}
           >
-            <span className="font-medium" style={{ color: "var(--color-warning)" }}>Catch-up filing</span>
+            <span className="font-medium" style={{ color: "var(--color-warning)" }}>
+              Catch-up filing
+            </span>
             <p className="mt-1" style={{ color: "var(--color-text-secondary)" }}>
-              You have {allYears.length} forms to file (years: {allYears.join(", ")}).
-              The download below bundles them into a single PDF with a cover sheet.
+              You have {allYears.length} forms to file (years: {allYears.join(", ")}). The download
+              below bundles them into a single PDF with a cover sheet.
             </p>
           </div>
         )}
@@ -135,7 +157,7 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
               color: "var(--color-danger)",
             }}
           >
-            <span className="font-mono mr-2">ERROR</span>
+            <span className="mr-2 font-mono">ERROR</span>
             {error}
             <p className="mt-1" style={{ color: "var(--color-text-secondary)" }}>
               The PDF template may not be available yet. Contact your DSO or file manually.
@@ -146,7 +168,7 @@ export function Form8843Card({ data }: { data: Form8843Data }) {
         <button
           onClick={handleDownload}
           disabled={loading}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
           style={{
             background: loading ? "#AEAEB2" : "var(--color-accent)",
             color: "#FFFFFF",

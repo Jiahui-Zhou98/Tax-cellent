@@ -21,10 +21,10 @@ import { SectionCard } from "./SectionCard";
 const CURRENT_YEAR = new Date().getFullYear() - 1;
 
 const TIN_OPTIONS = [
-  { value: "ssn",         label: "Social Security Number (SSN)" },
-  { value: "itin",        label: "Individual Taxpayer Identification Number (ITIN)" },
+  { value: "ssn", label: "Social Security Number (SSN)" },
+  { value: "itin", label: "Individual Taxpayer Identification Number (ITIN)" },
   { value: "applied_for", label: "Applied for (ITIN application pending)" },
-  { value: "none",        label: "None — exempt individuals need not obtain one" },
+  { value: "none", label: "None — exempt individuals need not obtain one" },
 ];
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -133,9 +133,10 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
     setError(null);
     try {
       const data = buildFormData();
-      const allYears = catchUpYears.length > 0
-        ? [CURRENT_YEAR, ...catchUpYears].sort((a, b) => a - b)
-        : [CURRENT_YEAR];
+      const allYears =
+        catchUpYears.length > 0
+          ? [CURRENT_YEAR, ...catchUpYears].sort((a, b) => a - b)
+          : [CURRENT_YEAR];
 
       let blob: Blob;
       if (allYears.length > 1) {
@@ -154,12 +155,12 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in space-y-5">
       {/* Breadcrumb */}
-      <nav aria-label="Path" className="flex items-center gap-1.5 text-xs font-mono">
+      <nav aria-label="Path" className="flex items-center gap-1.5 font-mono text-xs">
         <button
           onClick={onBack}
-          className="transition-colors focus-visible:outline focus-visible:outline-2 rounded"
+          className="rounded transition-colors focus-visible:outline focus-visible:outline-2"
           style={{ color: "var(--color-text-secondary)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-accent)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
@@ -171,12 +172,15 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       </nav>
 
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+        <h2
+          className="text-2xl font-semibold tracking-tight"
+          style={{ color: "var(--color-text-primary)" }}
+        >
           Form 8843 — Zero Income
         </h2>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          All {NRA_VISA_TYPES.slice(0, 4).join(", ")} and other NRA visa holders must file this statement
-          even with no US-source income. It is not a tax return.
+        <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          All {NRA_VISA_TYPES.slice(0, 4).join(", ")} and other NRA visa holders must file this
+          statement even with no US-source income. It is not a tax return.
         </p>
       </div>
 
@@ -184,7 +188,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       <SectionCard title="Your Name" variant="default">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="zi-first-name" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>First name</label>
+            <label
+              htmlFor="zi-first-name"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              First name
+            </label>
             <input
               id="zi-first-name"
               type="text"
@@ -195,7 +205,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
             />
           </div>
           <div>
-            <label htmlFor="zi-last-name" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>Last name</label>
+            <label
+              htmlFor="zi-last-name"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Last name
+            </label>
             <input
               id="zi-last-name"
               type="text"
@@ -212,7 +228,11 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       <SectionCard title="Taxpayer ID" variant="default">
         <div className="space-y-3">
           <div>
-            <label htmlFor="zi-tin-status" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="zi-tin-status"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               Do you have a US taxpayer identification number?
             </label>
             <select
@@ -222,13 +242,19 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               style={inputStyle}
             >
               {TIN_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
           {(tinStatus === "ssn" || tinStatus === "itin") && (
             <div>
-              <label htmlFor="zi-tin-value" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+              <label
+                htmlFor="zi-tin-value"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
                 {tinStatus === "ssn" ? "SSN" : "ITIN"} (format: XXX-XX-XXXX)
               </label>
               <input
@@ -248,7 +274,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       <SectionCard title="Visa &amp; Residency" variant="default">
         <div className="space-y-3">
           <div>
-            <label htmlFor="zi-visa-type" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>Visa type</label>
+            <label
+              htmlFor="zi-visa-type"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Visa type
+            </label>
             <select
               id="zi-visa-type"
               value={visaType}
@@ -256,12 +288,18 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               style={inputStyle}
             >
               {NRA_VISA_TYPES.map((v) => (
-                <option key={v} value={v}>{v}</option>
+                <option key={v} value={v}>
+                  {v}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label htmlFor="zi-entry-year" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="zi-entry-year"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               Year you first entered the US under this visa
             </label>
             <input
@@ -274,7 +312,11 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
             />
           </div>
           <div>
-            <label htmlFor="zi-days" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="zi-days"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               Days in the US during {CURRENT_YEAR} (Line 3)
             </label>
             <input
@@ -295,7 +337,7 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       <SectionCard title="Your Role" variant="success">
         <div className="space-y-2">
           {[
-            { value: "student",            label: "Student (Part I — most F-1/J-1 filers)" },
+            { value: "student", label: "Student (Part I — most F-1/J-1 filers)" },
             { value: "teacher_researcher", label: "Teacher or researcher (Part II)" },
           ].map(({ value, label }) => (
             <div
@@ -304,21 +346,39 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               aria-checked={role === value}
               tabIndex={0}
               onClick={() => setRole(value as typeof role)}
-              onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setRole(value as typeof role); } }}
-              className="flex items-start gap-3 cursor-pointer group outline-none rounded"
+              onKeyDown={(e) => {
+                if (e.key === " " || e.key === "Enter") {
+                  e.preventDefault();
+                  setRole(value as typeof role);
+                }
+              }}
+              className="group flex cursor-pointer items-start gap-3 rounded outline-none"
             >
               <div
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-all"
                 aria-hidden="true"
                 style={
                   role === value
-                    ? { background: "rgba(52,199,89,0.12)", border: "1.5px solid var(--color-success)" }
+                    ? {
+                        background: "rgba(52,199,89,0.12)",
+                        border: "1.5px solid var(--color-success)",
+                      }
                     : { background: "transparent", border: "1.5px solid var(--color-border)" }
                 }
               >
-                {role === value && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-success)" }} />}
+                {role === value && (
+                  <div
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: "var(--color-success)" }}
+                  />
+                )}
               </div>
-              <span className="text-sm transition-colors" style={{ color: "var(--color-text-secondary)" }}>{label}</span>
+              <span
+                className="text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {label}
+              </span>
             </div>
           ))}
         </div>
@@ -328,7 +388,11 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
       <SectionCard title="Academic Institution (Lines 4a–4c)" variant="default">
         <div className="space-y-3">
           <div>
-            <label htmlFor="zi-inst-name" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="zi-inst-name"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               School / university name <span style={{ opacity: 0.7 }}>(Line 4a)</span>
             </label>
             <input
@@ -357,7 +421,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="zi-inst-city" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>City <span style={{ opacity: 0.7 }}>(4b)</span></label>
+              <label
+                htmlFor="zi-inst-city"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                City <span style={{ opacity: 0.7 }}>(4b)</span>
+              </label>
               <input
                 id="zi-inst-city"
                 type="text"
@@ -368,7 +438,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               />
             </div>
             <div>
-              <label htmlFor="zi-inst-state" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>State <span style={{ opacity: 0.7 }}>(4c, 2-letter)</span></label>
+              <label
+                htmlFor="zi-inst-state"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                State <span style={{ opacity: 0.7 }}>(4c, 2-letter)</span>
+              </label>
               <input
                 id="zi-inst-state"
                 type="text"
@@ -388,7 +464,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
         <SectionCard title="Exchange Program Info (Part III)" variant="warning">
           <div className="space-y-3">
             <div>
-              <label htmlFor="zi-exchange" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>Exchange program name</label>
+              <label
+                htmlFor="zi-exchange"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                Exchange program name
+              </label>
               <input
                 id="zi-exchange"
                 type="text"
@@ -399,7 +481,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               />
             </div>
             <div>
-              <label htmlFor="zi-sponsor" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>Sponsoring organization name</label>
+              <label
+                htmlFor="zi-sponsor"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                Sponsoring organization name
+              </label>
               <input
                 id="zi-sponsor"
                 type="text"
@@ -410,7 +498,13 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
               />
             </div>
             <div>
-              <label htmlFor="zi-sponsor-addr" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>Sponsor address</label>
+              <label
+                htmlFor="zi-sponsor-addr"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                Sponsor address
+              </label>
               <input
                 id="zi-sponsor-addr"
                 type="text"
@@ -435,12 +529,21 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
             role="checkbox"
             aria-checked={showCatchUp}
             tabIndex={0}
-            onClick={() => { setShowCatchUp(!showCatchUp); if (showCatchUp) setCatchUpYears([]); }}
-            onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setShowCatchUp(!showCatchUp); if (showCatchUp) setCatchUpYears([]); } }}
-            className="flex items-start gap-3 cursor-pointer group outline-none rounded"
+            onClick={() => {
+              setShowCatchUp(!showCatchUp);
+              if (showCatchUp) setCatchUpYears([]);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                setShowCatchUp(!showCatchUp);
+                if (showCatchUp) setCatchUpYears([]);
+              }
+            }}
+            className="group flex cursor-pointer items-start gap-3 rounded outline-none"
           >
             <div
-              className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+              className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded transition-all"
               aria-hidden="true"
               style={
                 showCatchUp
@@ -448,43 +551,77 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
                   : { background: "transparent", border: "1.5px solid var(--color-border)" }
               }
             >
-              {showCatchUp && <span className="text-xs" style={{ color: "var(--color-danger)" }}>✓</span>}
+              {showCatchUp && (
+                <span className="text-xs" style={{ color: "var(--color-danger)" }}>
+                  ✓
+                </span>
+              )}
             </div>
-            <span className="text-sm transition-colors" style={{ color: "var(--color-text-secondary)" }}>
+            <span
+              className="text-sm transition-colors"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               I also need to file for prior years
             </span>
           </div>
 
           {showCatchUp && (
             <div className="space-y-2 pl-8">
-              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Select the years you missed:</p>
-              {[CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3, CURRENT_YEAR - 4].map((yr) => {
-                const checked = catchUpYears.includes(yr);
-                return (
-                  <div
-                    key={yr}
-                    role="checkbox"
-                    aria-checked={checked}
-                    tabIndex={0}
-                    onClick={() => setCatchUpYears(checked ? catchUpYears.filter((y) => y !== yr) : [...catchUpYears, yr])}
-                    onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setCatchUpYears(checked ? catchUpYears.filter((y) => y !== yr) : [...catchUpYears, yr]); } }}
-                    className="flex items-center gap-3 cursor-pointer group outline-none rounded"
-                  >
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                Select the years you missed:
+              </p>
+              {[CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3, CURRENT_YEAR - 4].map(
+                (yr) => {
+                  const checked = catchUpYears.includes(yr);
+                  return (
                     <div
-                      className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
-                      aria-hidden="true"
-                      style={
-                        checked
-                          ? { background: "rgba(255,59,48,0.1)", border: "1.5px solid var(--color-danger)" }
-                          : { background: "transparent", border: "1.5px solid var(--color-border)" }
+                      key={yr}
+                      role="checkbox"
+                      aria-checked={checked}
+                      tabIndex={0}
+                      onClick={() =>
+                        setCatchUpYears(
+                          checked ? catchUpYears.filter((y) => y !== yr) : [...catchUpYears, yr]
+                        )
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === " " || e.key === "Enter") {
+                          e.preventDefault();
+                          setCatchUpYears(
+                            checked ? catchUpYears.filter((y) => y !== yr) : [...catchUpYears, yr]
+                          );
+                        }
+                      }}
+                      className="group flex cursor-pointer items-center gap-3 rounded outline-none"
                     >
-                      {checked && <span className="text-xs" style={{ color: "var(--color-danger)" }}>✓</span>}
+                      <div
+                        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded transition-all"
+                        aria-hidden="true"
+                        style={
+                          checked
+                            ? {
+                                background: "rgba(255,59,48,0.1)",
+                                border: "1.5px solid var(--color-danger)",
+                              }
+                            : {
+                                background: "transparent",
+                                border: "1.5px solid var(--color-border)",
+                              }
+                        }
+                      >
+                        {checked && (
+                          <span className="text-xs" style={{ color: "var(--color-danger)" }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                        {yr}
+                      </span>
                     </div>
-                    <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{yr}</span>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
           )}
         </div>
@@ -492,10 +629,12 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
 
       {/* Mailing reminder */}
       <div
-        className="rounded-xl p-4 text-xs space-y-1"
+        className="space-y-1 rounded-xl p-4 text-xs"
         style={{ background: "rgba(0,113,227,0.05)", border: "1px solid rgba(0,113,227,0.15)" }}
       >
-        <p className="font-medium" style={{ color: "var(--color-text-primary)" }}>After downloading</p>
+        <p className="font-medium" style={{ color: "var(--color-text-primary)" }}>
+          After downloading
+        </p>
         <p style={{ color: "var(--color-text-secondary)" }}>
           Sign the form, then mail to:{" "}
           <span className="font-mono" style={{ color: "var(--color-text-primary)" }}>
@@ -503,7 +642,8 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
           </span>
         </p>
         <p style={{ color: "var(--color-text-secondary)" }}>
-          Deadline: <span style={{ color: "var(--color-text-primary)" }}>June 15, {CURRENT_YEAR}</span>
+          Deadline:{" "}
+          <span style={{ color: "var(--color-text-primary)" }}>June 15, {CURRENT_YEAR}</span>
           &nbsp;·&nbsp;Form 8843 cannot be e-filed.
         </p>
       </div>
@@ -517,7 +657,7 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
             color: "var(--color-danger)",
           }}
         >
-          <span className="font-mono mr-2">ERROR</span>
+          <span className="mr-2 font-mono">ERROR</span>
           {error}
         </div>
       )}
@@ -540,7 +680,7 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
         <button
           onClick={onBack}
           disabled={loading}
-          className="py-3 px-5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
+          className="rounded-xl px-5 py-3 text-sm font-semibold transition-all disabled:opacity-40"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",
@@ -553,8 +693,11 @@ export function ZeroIncomeStep({ onBack, prefill }: Props) {
         <button
           onClick={handleDownload}
           disabled={loading || !firstName.trim() || !lastName.trim()}
-          className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40"
-          style={{ background: loading ? "#AEAEB2" : "var(--color-accent)", cursor: (loading || !firstName.trim() || !lastName.trim()) ? "not-allowed" : "pointer" }}
+          className="flex-1 rounded-xl py-3 text-sm font-semibold text-white transition-all disabled:opacity-40"
+          style={{
+            background: loading ? "#AEAEB2" : "var(--color-accent)",
+            cursor: loading || !firstName.trim() || !lastName.trim() ? "not-allowed" : "pointer",
+          }}
         >
           {loading
             ? "Generating PDF…"

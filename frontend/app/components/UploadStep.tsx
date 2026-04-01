@@ -37,8 +37,8 @@ export function UploadStep({
 
   // Load saved key from sessionStorage on mount — check both Upload and Settings keys
   useEffect(() => {
-    const saved = sessionStorage.getItem(AI_KEY_STORAGE)
-      || sessionStorage.getItem(SETTINGS_KEY_STORAGE);
+    const saved =
+      sessionStorage.getItem(AI_KEY_STORAGE) || sessionStorage.getItem(SETTINGS_KEY_STORAGE);
     if (saved) {
       setAiKey(saved);
       // Sync to Upload key so it persists for next time
@@ -72,7 +72,7 @@ export function UploadStep({
         const ocr = await uploadDocument(
           files[0],
           aiKey.trim() || undefined,
-          aiKey.trim() ? "gemini-2.0-flash" : undefined,
+          aiKey.trim() ? "gemini-2.0-flash" : undefined
         );
         onUploaded(ocr);
       } catch (e: unknown) {
@@ -95,13 +95,17 @@ export function UploadStep({
   });
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in space-y-5">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+        <h2
+          className="text-2xl font-semibold tracking-tight"
+          style={{ color: "var(--color-text-primary)" }}
+        >
           Upload Tax Document
         </h2>
         <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          Upload your W-2, 1099-NEC, or 1099-INT and we'll extract the fields automatically — then guide you through filing your 1040-NR and Form 8843.
+          Upload your W-2, 1099-NEC, or 1099-INT and we'll extract the fields automatically — then
+          guide you through filing your 1040-NR and Form 8843.
         </p>
       </div>
 
@@ -114,10 +118,8 @@ export function UploadStep({
             border: "1px solid rgba(99,102,241,0.2)",
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-indigo-400">
-              AI-Powered Extraction
-            </p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-indigo-400">AI-Powered Extraction</p>
             <button
               onClick={() => setShowAiBanner(false)}
               className="text-xs text-slate-600 hover:text-slate-400"
@@ -125,9 +127,9 @@ export function UploadStep({
               dismiss
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-3">
-            Enter your Gemini API key for dramatically more accurate field extraction.
-            Your document is sent to Google for processing. Key saved for this session only.
+          <p className="mb-3 text-xs text-slate-500">
+            Enter your Gemini API key for dramatically more accurate field extraction. Your document
+            is sent to Google for processing. Key saved for this session only.
           </p>
           <div className="flex gap-2">
             <input
@@ -140,9 +142,7 @@ export function UploadStep({
               className="flex-1"
             />
             {aiKey && (
-              <span className="text-xs text-emerald-500 self-center whitespace-nowrap">
-                Saved
-              </span>
+              <span className="self-center text-xs whitespace-nowrap text-emerald-500">Saved</span>
             )}
           </div>
         </div>
@@ -153,7 +153,7 @@ export function UploadStep({
         {...getRootProps()}
         aria-label="Upload tax document, drop a file here or click to browse"
         role="button"
-        className="relative rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden"
+        className="relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-300"
         style={
           isDragActive
             ? {
@@ -162,28 +162,28 @@ export function UploadStep({
                 boxShadow: "0 0 24px rgba(0,113,227,0.08)",
               }
             : loading
-            ? {
-                background: "var(--color-bg)",
-                border: "1.5px dashed var(--color-border)",
-                opacity: 0.7,
-              }
-            : {
-                background: "var(--color-surface)",
-                border: "1.5px dashed var(--color-border)",
-              }
+              ? {
+                  background: "var(--color-bg)",
+                  border: "1.5px dashed var(--color-border)",
+                  opacity: 0.7,
+                }
+              : {
+                  background: "var(--color-surface)",
+                  border: "1.5px dashed var(--color-border)",
+                }
         }
       >
         <input {...getInputProps()} aria-label="Select tax document file" />
 
-        <div className="py-14 px-8 text-center">
+        <div className="px-8 py-14 text-center">
           {loading ? (
             <div
-              className="inline-block w-10 h-10 mb-5 rounded-full border-2 animate-spin"
+              className="mb-5 inline-block h-10 w-10 animate-spin rounded-full border-2"
               style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-accent)" }}
             />
           ) : (
             <div
-              className="w-12 h-12 mx-auto mb-5 rounded-xl flex items-center justify-center"
+              className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl"
               style={{
                 background: "rgba(0,113,227,0.06)",
                 border: "1px solid rgba(0,113,227,0.15)",
@@ -210,10 +210,10 @@ export function UploadStep({
             {loading
               ? hints[hintIndex]
               : isDragActive
-              ? "Release to upload"
-              : "Drop your tax document here, or click to browse"}
+                ? "Release to upload"
+                : "Drop your tax document here, or click to browse"}
           </p>
-          <p className="text-xs mt-2 font-mono" style={{ color: "var(--color-text-secondary)" }}>
+          <p className="mt-2 font-mono text-xs" style={{ color: "var(--color-text-secondary)" }}>
             {loading ? "\u00a0" : "W-2 · 1099-NEC · 1099-INT · 1042-S · PDF · PNG · JPG"}
           </p>
         </div>
@@ -228,7 +228,7 @@ export function UploadStep({
             color: "var(--color-danger)",
           }}
         >
-          <span className="font-mono mr-2">ERROR</span>
+          <span className="mr-2 font-mono">ERROR</span>
           {error}
         </div>
       )}
@@ -238,7 +238,7 @@ export function UploadStep({
         <button
           onClick={onZeroIncome}
           disabled={loading}
-          className="w-full py-3 rounded-xl text-sm font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all disabled:opacity-40"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",
@@ -266,9 +266,9 @@ export function UploadStep({
         className="rounded-xl p-5"
         style={{ background: "rgba(52,199,89,0.05)", border: "1px solid rgba(52,199,89,0.15)" }}
       >
-        <div className="flex items-center gap-3 mb-3">
+        <div className="mb-3 flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
             style={{ background: "rgba(52,199,89,0.1)", border: "1px solid rgba(52,199,89,0.2)" }}
           >
             <svg
@@ -308,8 +308,14 @@ export function UploadStep({
                 "No account, no sign-up, no data stored anywhere",
               ]
           ).map((item) => (
-            <div key={item} className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <span className="flex-shrink-0" style={{ color: "var(--color-success)" }}>✓</span>
+            <div
+              key={item}
+              className="flex items-center gap-2 text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              <span className="flex-shrink-0" style={{ color: "var(--color-success)" }}>
+                ✓
+              </span>
               {item}
             </div>
           ))}

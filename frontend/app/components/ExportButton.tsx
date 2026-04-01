@@ -47,7 +47,7 @@ export function ExportButton({ documentId }: ExportButtonProps) {
     <div className="space-y-3">
       {/* Acknowledgment gate */}
       <label
-        className="flex items-start gap-2.5 cursor-pointer select-none"
+        className="flex cursor-pointer items-start gap-2.5 select-none"
         style={{
           background: "rgba(254,243,199,0.08)",
           border: "1px solid rgba(251,191,36,0.25)",
@@ -61,30 +61,35 @@ export function ExportButton({ documentId }: ExportButtonProps) {
           onChange={(e) => setAcknowledged(e.target.checked)}
           className="mt-0.5 accent-amber-500"
         />
-        <span className="text-xs text-slate-400 leading-relaxed">
-          I understand Tax-cellent is a filing assistance tool, not professional
-          tax advice. I will review all pre-filled values for accuracy before
-          signing and mailing.
+        <span className="text-xs leading-relaxed text-slate-400">
+          I understand Tax-cellent is a filing assistance tool, not professional tax advice. I will
+          review all pre-filled values for accuracy before signing and mailing.
         </span>
       </label>
 
       <button
         onClick={handleDownload}
         disabled={loading || !acknowledged}
-        className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+        className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-all disabled:opacity-40"
         style={{
           background: loading || !acknowledged ? "rgba(0,113,227,0.08)" : "var(--color-accent)",
           border: "none",
           color: loading || !acknowledged ? "var(--color-text-secondary)" : "#FFFFFF",
           cursor: loading || !acknowledged ? "not-allowed" : "pointer",
         }}
-        onMouseEnter={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-        onMouseLeave={(e) => { if (!loading && acknowledged) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+        onMouseEnter={(e) => {
+          if (!loading && acknowledged)
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
+        }}
+        onMouseLeave={(e) => {
+          if (!loading && acknowledged)
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
+        }}
       >
         {loading ? (
           <>
             <span
-              className="inline-block w-4 h-4 rounded-full border-2 animate-spin"
+              className="inline-block h-4 w-4 animate-spin rounded-full border-2"
               style={{ borderColor: "rgba(255,255,255,0.3)", borderTopColor: "#FFFFFF" }}
             />
             Generating PDF...
@@ -92,16 +97,20 @@ export function ExportButton({ documentId }: ExportButtonProps) {
         ) : (
           <>
             <span>{acknowledged ? "\u2193" : "\u26A0"}</span>
-            {acknowledged ? "Download Tax Filing Package" : "Check the box above to enable download"}
+            {acknowledged
+              ? "Download Tax Filing Package"
+              : "Check the box above to enable download"}
           </>
         )}
       </button>
 
       {error && (
-        <p className="text-xs text-center px-2" style={{ color: "var(--color-danger)" }}>{error}</p>
+        <p className="px-2 text-center text-xs" style={{ color: "var(--color-danger)" }}>
+          {error}
+        </p>
       )}
 
-      <p className="text-xs text-center" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-center text-xs" style={{ color: "var(--color-text-secondary)" }}>
         Includes Form 1040-NR · Form 8843 · Filing Instructions
       </p>
     </div>

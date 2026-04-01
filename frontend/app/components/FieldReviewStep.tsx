@@ -154,7 +154,11 @@ export function FieldReviewStep({
 
   const handleChange = (key: string, value: string) => {
     setFields((prev) => ({ ...prev, [key]: { ...prev[key], value, source: "user_edited" } }));
-    setUnresolved((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    setUnresolved((prev) => {
+      const n = new Set(prev);
+      n.delete(key);
+      return n;
+    });
   };
 
   const toggleUnresolved = (key: string) => {
@@ -170,7 +174,8 @@ export function FieldReviewStep({
     onStateSave?.(fields, Array.from(unresolved));
     setLoading(true);
     setError(null);
-    const payload: Record<string, { value: string | null; source: string; confidence: number }> = {};
+    const payload: Record<string, { value: string | null; source: string; confidence: number }> =
+      {};
     for (const [k, v] of Object.entries(fields)) {
       if (!unresolved.has(k)) {
         payload[k] = {
@@ -203,20 +208,26 @@ export function FieldReviewStep({
   const hasAiResults = aiVerified + aiDisagree + aiOnly > 0;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+          <h2
+            className="text-2xl font-semibold tracking-tight"
+            style={{ color: "var(--color-text-primary)" }}
+          >
             Review Extracted Fields
           </h2>
-          <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+          <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
             Verify extracted values. Edit incorrect fields or flag unresolved ones.
           </p>
         </div>
         <button
-          onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
+          onClick={() => {
+            onStateSave?.(fields, Array.from(unresolved));
+            onBack();
+          }}
           disabled={loading}
-          className="text-sm mt-1 whitespace-nowrap disabled:opacity-40 transition-colors"
+          className="mt-1 text-sm whitespace-nowrap transition-colors disabled:opacity-40"
           style={{ color: "var(--color-text-secondary)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
@@ -228,7 +239,7 @@ export function FieldReviewStep({
       {/* AI verification summary or nudge */}
       {!hasAiResults && (
         <div
-          className="rounded-xl p-4 flex items-center gap-3"
+          className="flex items-center gap-3 rounded-xl p-4"
           style={{
             background: "rgba(99,102,241,0.05)",
             border: "1px solid rgba(99,102,241,0.15)",
@@ -236,11 +247,14 @@ export function FieldReviewStep({
         >
           <span className="text-lg opacity-60">{"\u2139"}</span>
           <div className="text-xs text-slate-500">
-            <span className="text-indigo-400 font-medium">No AI verification.</span>{" "}
-            Enter a Gemini API key on the Upload step for dramatically more accurate extraction.
+            <span className="font-medium text-indigo-400">No AI verification.</span> Enter a Gemini
+            API key on the Upload step for dramatically more accurate extraction.
             <button
-              onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
-              className="ml-2 text-indigo-400 hover:text-indigo-300 underline"
+              onClick={() => {
+                onStateSave?.(fields, Array.from(unresolved));
+                onBack();
+              }}
+              className="ml-2 text-indigo-400 underline hover:text-indigo-300"
             >
               Re-upload with AI
             </button>
@@ -249,11 +263,9 @@ export function FieldReviewStep({
       )}
       {hasAiResults && (
         <div
-          className="rounded-xl p-4 flex items-center gap-3"
+          className="flex items-center gap-3 rounded-xl p-4"
           style={{
-            background: aiDisagree > 0
-              ? "rgba(251,191,36,0.06)"
-              : "rgba(52,211,153,0.06)",
+            background: aiDisagree > 0 ? "rgba(251,191,36,0.06)" : "rgba(52,211,153,0.06)",
             border: `1px solid ${aiDisagree > 0 ? "rgba(251,191,36,0.2)" : "rgba(52,211,153,0.2)"}`,
           }}
         >
@@ -271,7 +283,14 @@ export function FieldReviewStep({
       {reviewFlags.length > 0 && (
         <SectionCard title="Review Flags — Low Confidence" variant="danger">
           {reviewFlags.map(([key]) => (
-            <FieldRow key={key} fieldKey={key} field={fields[key]} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
+            <FieldRow
+              key={key}
+              fieldKey={key}
+              field={fields[key]}
+              isUnresolved={unresolved.has(key)}
+              onChange={handleChange}
+              onToggle={toggleUnresolved}
+            />
           ))}
         </SectionCard>
       )}
@@ -279,7 +298,14 @@ export function FieldReviewStep({
       {groups.map((group) => (
         <SectionCard key={group.title} title={group.title} variant={group.variant}>
           {group.fields.map((key) => (
-            <FieldRow key={key} fieldKey={key} field={fields[key] ?? { value: "", source: "missing", confidence: 0 }} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
+            <FieldRow
+              key={key}
+              fieldKey={key}
+              field={fields[key] ?? { value: "", source: "missing", confidence: 0 }}
+              isUnresolved={unresolved.has(key)}
+              onChange={handleChange}
+              onToggle={toggleUnresolved}
+            />
           ))}
         </SectionCard>
       ))}
@@ -287,7 +313,14 @@ export function FieldReviewStep({
       {otherKeys.length > 0 && (
         <SectionCard title="Other Fields" variant="default">
           {otherKeys.map((key) => (
-            <FieldRow key={key} fieldKey={key} field={fields[key]} isUnresolved={unresolved.has(key)} onChange={handleChange} onToggle={toggleUnresolved} />
+            <FieldRow
+              key={key}
+              fieldKey={key}
+              field={fields[key]}
+              isUnresolved={unresolved.has(key)}
+              onChange={handleChange}
+              onToggle={toggleUnresolved}
+            />
           ))}
         </SectionCard>
       )}
@@ -301,16 +334,19 @@ export function FieldReviewStep({
             color: "var(--color-danger)",
           }}
         >
-          <span className="font-mono mr-2">ERROR</span>
+          <span className="mr-2 font-mono">ERROR</span>
           {error}
         </div>
       )}
 
       <div className="flex gap-3">
         <button
-          onClick={() => { onStateSave?.(fields, Array.from(unresolved)); onBack(); }}
+          onClick={() => {
+            onStateSave?.(fields, Array.from(unresolved));
+            onBack();
+          }}
           disabled={loading}
-          className="px-5 py-3 rounded-xl font-medium text-sm transition-all disabled:opacity-40"
+          className="rounded-xl px-5 py-3 text-sm font-medium transition-all disabled:opacity-40"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",
@@ -323,8 +359,11 @@ export function FieldReviewStep({
         <button
           onClick={handleConfirm}
           disabled={loading}
-          className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40"
-          style={{ background: loading ? "#AEAEB2" : "var(--color-accent)", cursor: loading ? "not-allowed" : "pointer" }}
+          className="flex-1 rounded-xl py-3 text-sm font-semibold text-white transition-all disabled:opacity-40"
+          style={{
+            background: loading ? "#AEAEB2" : "var(--color-accent)",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           {loading ? "Confirming…" : "Confirm Fields & Run Validation →"}
         </button>

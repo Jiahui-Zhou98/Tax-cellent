@@ -21,7 +21,7 @@ const DOMESTIC_VISAS = new Set(["US_CITIZEN", "GREEN_CARD", "RESIDENT_ALIEN"]);
 // Returns the relevant deadline date for the given visa type and income status.
 function getDeadline(
   visaType: string,
-  hasIncome: boolean,
+  hasIncome: boolean
 ): { date: Date; label: string; note: string } {
   const year = new Date().getFullYear();
 
@@ -110,11 +110,8 @@ export function DeadlineBanner({
       <span style={{ color }} className="font-mono font-semibold">
         ⏰ {label} deadline
       </span>
-      <span className="text-slate-500 hidden sm:block truncate">{note}</span>
-      <span
-        className="font-mono font-bold flex-shrink-0"
-        style={{ color }}
-      >
+      <span className="hidden truncate text-slate-500 sm:block">{note}</span>
+      <span className="flex-shrink-0 font-mono font-bold" style={{ color }}>
         {urgencyLabel}
       </span>
     </div>

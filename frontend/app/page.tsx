@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { type OCROutput, type ValidationOutput, type TaxReport, type AnalysisPreferences } from "./lib/api";
+import {
+  type OCROutput,
+  type ValidationOutput,
+  type TaxReport,
+  type AnalysisPreferences,
+} from "./lib/api";
 import { StepSidebar } from "./components/StepSidebar";
 import { StepShell } from "./components/StepShell";
 import { UploadStep } from "./components/UploadStep";
@@ -41,7 +46,9 @@ export default function Home() {
   // FieldReviewStep state — restored when user navigates back to that step
   type FieldState = Record<string, { value: string; source: string; confidence: number }>;
   const [savedFieldReviewFields, setSavedFieldReviewFields] = useState<FieldState | null>(null);
-  const [savedFieldReviewUnresolved, setSavedFieldReviewUnresolved] = useState<string[] | null>(null);
+  const [savedFieldReviewUnresolved, setSavedFieldReviewUnresolved] = useState<string[] | null>(
+    null
+  );
 
   // Sidebar always shows step 0 on zero-income path
   const sidebarCurrent = zeroIncomePath ? 0 : step;
@@ -50,10 +57,7 @@ export default function Home() {
     if (zeroIncomePath) {
       return (
         <StepShell step={0}>
-          <ZeroIncomeStep
-            onBack={() => setZeroIncomePath(false)}
-            prefill={institutionPrefill}
-          />
+          <ZeroIncomeStep onBack={() => setZeroIncomePath(false)} prefill={institutionPrefill} />
         </StepShell>
       );
     }
@@ -62,7 +66,10 @@ export default function Home() {
       return (
         <StepShell step={0}>
           <UploadStep
-            onUploaded={(o) => { setOcr(o); setStep(1); }}
+            onUploaded={(o) => {
+              setOcr(o);
+              setStep(1);
+            }}
             onZeroIncome={() => setZeroIncomePath(true)}
           />
         </StepShell>
@@ -77,7 +84,13 @@ export default function Home() {
             formType={ocr.field_candidates["form_type"]?.value ?? undefined}
             initialValues={savedContextValues ?? undefined}
             onConfirm={() => setStep(2)}
-            onBack={() => { setOcr(null); setSavedContextValues(null); setSavedFieldReviewFields(null); setSavedFieldReviewUnresolved(null); setStep(0); }}
+            onBack={() => {
+              setOcr(null);
+              setSavedContextValues(null);
+              setSavedFieldReviewFields(null);
+              setSavedFieldReviewUnresolved(null);
+              setStep(0);
+            }}
             onContextSaved={(ctx) => {
               setVisaType(ctx.visaType);
               setSavedContextValues(ctx);
@@ -99,7 +112,10 @@ export default function Home() {
         <StepShell step={2}>
           <FieldReviewStep
             ocr={ocr}
-            onConfirm={(v) => { setValidation(v); setStep(3); }}
+            onConfirm={(v) => {
+              setValidation(v);
+              setStep(3);
+            }}
             onBack={() => setStep(1)}
             savedFields={savedFieldReviewFields ?? undefined}
             savedUnresolved={savedFieldReviewUnresolved ?? undefined}
@@ -128,7 +144,10 @@ export default function Home() {
       return (
         <StepShell step={4}>
           <SettingsStep
-            onAnalyze={(prefs) => { setAnalysisPreferences(prefs); setStep(5); }}
+            onAnalyze={(prefs) => {
+              setAnalysisPreferences(prefs);
+              setStep(5);
+            }}
             onBack={() => setStep(3)}
           />
         </StepShell>
@@ -141,7 +160,10 @@ export default function Home() {
           <AnalysisStep
             documentId={ocr.document_id}
             preferences={analysisPreferences}
-            onComplete={(r) => { setReport(r); setStep(6); }}
+            onComplete={(r) => {
+              setReport(r);
+              setStep(6);
+            }}
             onBack={() => setStep(4)}
           />
         </StepShell>
@@ -164,13 +186,10 @@ export default function Home() {
     <div className="animate-fade-in">
       <DeadlineBanner visaType={visaType} hasIncome={!zeroIncomePath} />
       {/* Two-panel layout: sidebar + content */}
-      <div
-        className="flex"
-        style={{ minHeight: "calc(100vh - 57px)" }}
-      >
+      <div className="flex" style={{ minHeight: "calc(100vh - 57px)" }}>
         <StepSidebar current={sidebarCurrent} />
         <main
-          className="flex-1 p-6 md:p-10 overflow-y-auto"
+          className="flex-1 overflow-y-auto p-6 md:p-10"
           style={{ background: "var(--color-bg)" }}
         >
           {renderContent()}

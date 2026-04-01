@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkHealth, getProviderModels, type AnalysisPreferences, type HealthStatus } from "../lib/api";
+import {
+  checkHealth,
+  getProviderModels,
+  type AnalysisPreferences,
+  type HealthStatus,
+} from "../lib/api";
 import { inputStyle } from "../styles";
 import { SectionCard } from "./SectionCard";
 
@@ -47,10 +52,13 @@ export function SettingsStep({
   const [apiKey, setApiKey] = useState("");
   const [remember, setRemember] = useState(false);
   const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [providerModels, setProviderModels] = useState<Record<string, string[]>>(FALLBACK_PROVIDER_MODELS);
+  const [providerModels, setProviderModels] =
+    useState<Record<string, string[]>>(FALLBACK_PROVIDER_MODELS);
 
   useEffect(() => {
-    checkHealth().then(setHealth).catch(() => {});
+    checkHealth()
+      .then(setHealth)
+      .catch(() => {});
     getProviderModels().then((models) => {
       if (models) setProviderModels(models);
     });
@@ -59,9 +67,12 @@ export function SettingsStep({
   function handleProviderChange(next: AnalysisPreferences["provider"]) {
     setProvider(next);
     setModel("");
-    const stored = next !== "ollama"
-      ? (typeof sessionStorage !== "undefined" ? sessionStorage.getItem(SESSION_KEY(next)) : null)
-      : null;
+    const stored =
+      next !== "ollama"
+        ? typeof sessionStorage !== "undefined"
+          ? sessionStorage.getItem(SESSION_KEY(next))
+          : null
+        : null;
     setApiKey(stored ?? "");
     setRemember(!!stored);
   }
@@ -88,17 +99,19 @@ export function SettingsStep({
   const isCloud = provider !== "ollama";
   const modelList = providerModels[provider] ?? [];
   const providerStatus = health?.providers[provider];
-  const isConfigured =
-    provider === "ollama" ? providerStatus?.running : providerStatus?.configured;
+  const isConfigured = provider === "ollama" ? providerStatus?.running : providerStatus?.configured;
   const canSubmit = !isCloud || isConfigured || !!apiKey;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in space-y-5">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+        <h2
+          className="text-2xl font-semibold tracking-tight"
+          style={{ color: "var(--color-text-primary)" }}
+        >
           AI Provider Settings
         </h2>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
           Choose the model that will generate explanations in your tax report.
         </p>
       </div>
@@ -107,13 +120,19 @@ export function SettingsStep({
         <div className="space-y-4">
           {/* Provider selector */}
           <div>
-            <label htmlFor="provider-select" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="provider-select"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               Provider
             </label>
             <select
               id="provider-select"
               value={provider}
-              onChange={(e) => handleProviderChange(e.target.value as AnalysisPreferences["provider"])}
+              onChange={(e) =>
+                handleProviderChange(e.target.value as AnalysisPreferences["provider"])
+              }
               style={inputStyle}
             >
               {(["ollama", "openai", "anthropic", "gemini"] as const).map((p) => {
@@ -122,7 +141,8 @@ export function SettingsStep({
                 const badge = health ? (ok ? " ✓" : " ✗") : "";
                 return (
                   <option key={p} value={p}>
-                    {PROVIDER_INFO[p].label}{badge}
+                    {PROVIDER_INFO[p].label}
+                    {badge}
                   </option>
                 );
               })}
@@ -132,18 +152,19 @@ export function SettingsStep({
           {/* Configured status badge */}
           {health && (
             <div
-              className="text-xs px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
-              style={isConfigured
-                ? {
-                    background: "rgba(52,199,89,0.08)",
-                    color: "var(--color-success)",
-                    border: "1px solid rgba(52,199,89,0.25)",
-                  }
-                : {
-                    background: "rgba(255,59,48,0.06)",
-                    color: "var(--color-danger)",
-                    border: "1px solid rgba(255,59,48,0.2)",
-                  }
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
+              style={
+                isConfigured
+                  ? {
+                      background: "rgba(52,199,89,0.08)",
+                      color: "var(--color-success)",
+                      border: "1px solid rgba(52,199,89,0.25)",
+                    }
+                  : {
+                      background: "rgba(255,59,48,0.06)",
+                      color: "var(--color-danger)",
+                      border: "1px solid rgba(255,59,48,0.2)",
+                    }
               }
             >
               <span>{isConfigured ? "●" : "○"}</span>
@@ -152,18 +173,24 @@ export function SettingsStep({
                   ? "Ollama running"
                   : "API key configured in backend"
                 : provider === "ollama"
-                ? "Ollama not running — start Ollama to use local models"
-                : "API key not set — enter below or add to backend/.env"}
+                  ? "Ollama not running — start Ollama to use local models"
+                  : "API key not set — enter below or add to backend/.env"}
             </div>
           )}
 
           {/* Provider capability note */}
-          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{PROVIDER_INFO[provider].note}</p>
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+            {PROVIDER_INFO[provider].note}
+          </p>
 
           {/* API key input — cloud providers only */}
           {isCloud && (
             <div className="space-y-2">
-              <label htmlFor="api-key-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+              <label
+                htmlFor="api-key-input"
+                className="mb-1.5 block text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
                 API Key{" "}
                 <span style={{ opacity: 0.7 }}>(session-only, never stored server-side)</span>
               </label>
@@ -186,7 +213,7 @@ export function SettingsStep({
                 </p>
               )}
               {/* Session persistence opt-in */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+              <label className="flex cursor-pointer items-center gap-2 select-none">
                 <input
                   type="checkbox"
                   checked={remember}
@@ -204,7 +231,11 @@ export function SettingsStep({
 
           {/* Model picker: dropdown for cloud, text input for Ollama */}
           <div>
-            <label htmlFor="model-input" className="text-xs mb-1.5 block" style={{ color: "var(--color-text-secondary)" }}>
+            <label
+              htmlFor="model-input"
+              className="mb-1.5 block text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               Model
             </label>
             {modelList.length > 0 ? (
@@ -216,7 +247,9 @@ export function SettingsStep({
               >
                 <option value="">Default</option>
                 {modelList.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -232,8 +265,8 @@ export function SettingsStep({
           </div>
 
           <p className="text-xs" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
-            This only changes the AI explanations in the final report. Extraction,
-            validation, and tax math are deterministic.
+            This only changes the AI explanations in the final report. Extraction, validation, and
+            tax math are deterministic.
           </p>
         </div>
       </SectionCard>
@@ -241,7 +274,7 @@ export function SettingsStep({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="py-3.5 px-5 rounded-xl text-sm font-semibold transition-all"
+          className="rounded-xl px-5 py-3.5 text-sm font-semibold transition-all"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",
@@ -254,8 +287,11 @@ export function SettingsStep({
         <button
           onClick={handleAnalyze}
           disabled={!canSubmit}
-          className="flex-1 py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: "var(--color-accent)", cursor: canSubmit ? "pointer" : "not-allowed" }}
+          className="flex-1 rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          style={{
+            background: "var(--color-accent)",
+            cursor: canSubmit ? "pointer" : "not-allowed",
+          }}
         >
           Calculate Tax Outcome →
         </button>

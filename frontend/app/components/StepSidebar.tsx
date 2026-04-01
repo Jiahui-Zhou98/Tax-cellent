@@ -36,32 +36,32 @@ export function StepSidebar({ current }: { current: number }) {
               border: "none",
             }
           : isCompleted
-          ? {
-              background: "var(--color-success)",
-              color: "#FFFFFF",
-              border: "none",
-            }
-          : {
-              background: "var(--color-bg)",
-              color: "#AEAEB2",
-              border: "1px solid var(--color-border)",
-            };
+            ? {
+                background: "var(--color-success)",
+                color: "#FFFFFF",
+                border: "none",
+              }
+            : {
+                background: "var(--color-bg)",
+                color: "#AEAEB2",
+                border: "1px solid var(--color-border)",
+              };
 
         const iconColor = isActive || isCompleted ? "#FFFFFF" : "#AEAEB2";
 
         return (
-          <div key={i} className="flex step-sidebar-item w-full">
+          <div key={i} className="step-sidebar-item flex w-full">
             {/* Circle column with thread */}
-            <div className="flex flex-col items-center flex-shrink-0">
+            <div className="flex flex-shrink-0 flex-col items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300${isActive ? " animate-step-halo" : ""}`}
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all duration-300${isActive ? "animate-step-halo" : ""}`}
                 style={circleStyle}
                 aria-label={
                   isCompleted
                     ? `Step ${i + 1}: ${label}, completed`
                     : isActive
-                    ? `Step ${i + 1}: ${label}, current`
-                    : `Step ${i + 1}: ${label}`
+                      ? `Step ${i + 1}: ${label}, current`
+                      : `Step ${i + 1}: ${label}`
                 }
                 aria-current={isActive ? "step" : undefined}
               >
@@ -85,21 +85,27 @@ export function StepSidebar({ current }: { current: number }) {
             </div>
 
             {/* Label */}
-            <div className="step-sidebar-label pt-2 pb-1" style={{ paddingBottom: i < STEPS.length - 1 ? 20 : 0 }}>
+            <div
+              className="step-sidebar-label pt-2 pb-1"
+              style={{ paddingBottom: i < STEPS.length - 1 ? 20 : 0 }}
+            >
               <span
-                className="text-xs font-medium tracking-wide uppercase block"
+                className="block text-xs font-medium tracking-wide uppercase"
                 style={{
                   color: isActive
                     ? "var(--color-accent)"
                     : isCompleted
-                    ? "var(--color-success)"
-                    : "var(--color-text-secondary)",
+                      ? "var(--color-success)"
+                      : "var(--color-text-secondary)",
                 }}
               >
                 {label}
               </span>
               {isActive && (
-                <span className="text-xs block mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                <span
+                  className="mt-0.5 block text-xs"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
                   Step {i + 1} of {STEPS.length}
                 </span>
               )}

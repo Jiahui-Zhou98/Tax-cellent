@@ -31,26 +31,20 @@ export function SectionCard({
   const bg = VARIANT_BG[variant];
 
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid var(--color-border)" }}
-    >
+    <div className="overflow-hidden rounded-xl" style={{ border: "1px solid var(--color-border)" }}>
       <div
-        className="px-4 py-2.5 flex items-center gap-2"
+        className="flex items-center gap-2 px-4 py-2.5"
         style={{
           background: bg,
           borderBottom: "1px solid var(--color-border)",
         }}
       >
-        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-        <span
-          className="text-xs font-mono tracking-widest uppercase"
-          style={{ color }}
-        >
+        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: color }} />
+        <span className="font-mono text-xs tracking-widest uppercase" style={{ color }}>
           {title}
         </span>
       </div>
-      <div className="p-3 space-y-2" style={{ background: "var(--color-surface)" }}>
+      <div className="space-y-2 p-3" style={{ background: "var(--color-surface)" }}>
         {children}
       </div>
     </div>
