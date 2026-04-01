@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { uploadDocument, type OCROutput } from "../lib/api";
-import { inputStyle } from "../styles";
+
 
 const UPLOAD_HINTS = [
   "Extracting text from document\u2026",
@@ -140,8 +140,7 @@ export function UploadStep({
               value={aiKey}
               onChange={(e) => setAiKey(e.target.value)}
               onBlur={saveAiKey}
-              style={{ ...inputStyle, fontSize: "0.75rem" }}
-              className="flex-1"
+              className="input-field input-field-sm flex-1"
             />
             {aiKey && (
               <span className="self-center text-xs whitespace-nowrap text-emerald-500">Saved</span>
@@ -175,7 +174,7 @@ export function UploadStep({
                 }
         }
       >
-        <input {...getInputProps()} aria-label="Select tax document file" />
+        <input {...getInputProps()} aria-label="Select tax document file" suppressHydrationWarning />
 
         <div className="px-8 py-14 text-center">
           {loading ? (
