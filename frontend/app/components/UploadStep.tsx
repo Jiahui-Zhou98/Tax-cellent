@@ -154,7 +154,7 @@ export function UploadStep({
         {...getRootProps()}
         aria-label="Upload tax document, drop a file here or click to browse"
         role="button"
-        className="relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-300"
+        className="relative cursor-pointer overflow-hidden rounded-2xl transition-[background,border-color,box-shadow] duration-300"
         style={
           isDragActive
             ? {
@@ -239,7 +239,7 @@ export function UploadStep({
         <button
           onClick={onZeroIncome}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-colors duration-200 disabled:opacity-40"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",

@@ -78,7 +78,7 @@ export function FieldRow({
 }) {
   return (
     <div
-      className="rounded-lg px-4 py-3 transition-all"
+      className="rounded-lg px-4 py-3 transition-colors duration-150"
       style={
         isUnresolved
           ? { background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.25)" }
@@ -172,7 +172,7 @@ export function FieldRow({
               : `Flag ${FIELD_LABELS[fieldKey] ?? fieldKey} as unresolved`
           }
           aria-pressed={isUnresolved}
-          className="flex-shrink-0 rounded border px-2 py-0.5 font-mono text-xs transition-all"
+          className="flex-shrink-0 rounded border px-2 py-0.5 font-mono text-xs transition-colors duration-150"
           style={
             isUnresolved
               ? {
