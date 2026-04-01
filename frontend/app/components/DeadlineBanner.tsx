@@ -108,7 +108,7 @@ export function DeadlineBanner({
       aria-label={`Tax filing deadline: ${label}, ${urgencyLabel}`}
     >
       <span style={{ color }} className="font-mono font-semibold">
-        ⏰ {label} deadline
+        {label} deadline
       </span>
       <span className="hidden truncate text-slate-500 sm:block">{note}</span>
       <span className="flex-shrink-0 font-mono font-bold" style={{ color }}>
