@@ -51,3 +51,4 @@ frontend/.env.*
 # Keep Dockerfiles and compose — ignore local override files
 docker-compose.override.yml
 podman-compose.override.yml
+.gstack/

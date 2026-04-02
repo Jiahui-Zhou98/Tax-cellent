@@ -72,7 +72,7 @@ export function UploadStep({
         const ocr = await uploadDocument(
           files[0],
           aiKey.trim() || undefined,
-          aiKey.trim() ? "gemini-2.0-flash" : undefined
+          aiKey.trim() ? "gemini-2.5-flash" : undefined
         );
         onUploaded(ocr);
       } catch (e: unknown) {
