@@ -201,6 +201,55 @@ export async function getSessionStatus(document_id: string): Promise<string> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Bundle API (multi-document upload)
+// ---------------------------------------------------------------------------
+
+export async function createBundle(): Promise<{ bundle_id: string }> {
+  const res = await fetch(`${API_BASE}/api/bundle`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to create bundle");
+  return res.json();
+}
+
+export async function addDocumentToBundle(bundleId: string, documentId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/bundle/${bundleId}/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_id: documentId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Failed to add document to bundle");
+  }
+}
+
+export async function confirmBundle(bundleId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/bundle/${bundleId}/confirm`, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Failed to confirm bundle");
+  }
+}
+
+export async function aggregateBundle(bundleId: string): Promise<OCROutput> {
+  const res = await fetch(`${API_BASE}/api/bundle/${bundleId}/aggregate`, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Failed to aggregate bundle");
+  }
+  return res.json();
+}
+
+export async function removeDocumentFromBundle(bundleId: string, documentId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/bundle/${bundleId}/document/${documentId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Failed to remove document");
+  }
+}
+
 export async function checkHealth(): Promise<HealthStatus> {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();

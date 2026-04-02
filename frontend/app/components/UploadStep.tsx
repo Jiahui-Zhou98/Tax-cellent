@@ -2,7 +2,16 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { uploadDocument, type OCROutput } from "../lib/api";
+import {
+  uploadDocument,
+  createBundle,
+  addDocumentToBundle,
+  confirmBundle,
+  aggregateBundle,
+  removeDocumentFromBundle,
+  type OCROutput,
+} from "../lib/api";
+import { DocumentCard } from "./DocumentCard";
 
 
 const UPLOAD_HINTS = [
@@ -34,6 +43,12 @@ export function UploadStep({
   const [hintIndex, setHintIndex] = useState(0);
   const [aiKey, setAiKey] = useState("");
   const [showAiBanner, setShowAiBanner] = useState(true);
+
+  // Multi-document tray state
+  type DocEntry = { id: string; ocr: OCROutput; uploading?: boolean; error?: string };
+  const [documents, setDocuments] = useState<DocEntry[]>([]);
+  const [bundleId, setBundleId] = useState<string | null>(null);
+  const [continuing, setContinuing] = useState(false);
 
   // Load saved key from sessionStorage on mount — check both Upload and Settings keys
   useEffect(() => {
@@ -74,15 +89,59 @@ export function UploadStep({
           aiKey.trim() || undefined,
           aiKey.trim() ? "gemini-2.5-flash" : undefined
         );
-        onUploaded(ocr);
+
+        // Create bundle on first upload (if not already created)
+        let bid = bundleId;
+        if (!bid) {
+          const b = await createBundle();
+          bid = b.bundle_id;
+          setBundleId(bid);
+        }
+
+        // Add to bundle
+        await addDocumentToBundle(bid, ocr.document_id);
+
+        // Add to document tray
+        setDocuments((prev) => [...prev, { id: ocr.document_id, ocr }]);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoading(false);
       }
     },
-    [onUploaded, aiKey]
+    [aiKey, bundleId]
   );
+
+  const handleRemove = async (docId: string) => {
+    if (bundleId) {
+      try { await removeDocumentFromBundle(bundleId, docId); } catch { /* ignore */ }
+    }
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  };
+
+  const handleContinue = async () => {
+    if (documents.length === 0) return;
+
+    // Single doc: skip bundle, use directly
+    if (documents.length === 1) {
+      onUploaded(documents[0].ocr);
+      return;
+    }
+
+    // Multi-doc: confirm + aggregate via bundle API
+    setContinuing(true);
+    setError(null);
+    try {
+      if (!bundleId) throw new Error("No bundle created");
+      await confirmBundle(bundleId);
+      const aggregated = await aggregateBundle(bundleId);
+      onUploaded(aggregated);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setContinuing(false);
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -101,11 +160,11 @@ export function UploadStep({
           className="text-2xl font-semibold tracking-tight"
           style={{ color: "var(--color-text-primary)" }}
         >
-          Upload Tax Document
+          Upload Tax Documents
         </h2>
         <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          Upload your W-2, 1099-NEC, or 1099-INT and we'll extract the fields automatically — then
-          guide you through filing your 1040-NR and Form 8843.
+          Upload all your tax documents (W-2, 1099-NEC, 1042-S, etc). Add them one at a time.
+          We'll merge everything into one unified tax calculation.
         </p>
       </div>
 
@@ -219,6 +278,54 @@ export function UploadStep({
           </p>
         </div>
       </div>
+
+      {/* Document tray */}
+      {documents.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+              Your Documents ({documents.length})
+            </p>
+            <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+              {documents.length} of 10
+            </span>
+          </div>
+          {documents.map((doc) => (
+            <DocumentCard
+              key={doc.id}
+              ocr={doc.ocr}
+              onRemove={() => handleRemove(doc.id)}
+              loading={doc.uploading}
+              error={doc.error}
+            />
+          ))}
+          <button
+            onClick={handleContinue}
+            disabled={continuing || loading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-all disabled:opacity-40"
+            style={{
+              background: continuing ? "rgba(0,113,227,0.08)" : "var(--color-accent)",
+              color: continuing ? "var(--color-text-secondary)" : "#FFFFFF",
+              border: "none",
+              cursor: continuing || loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {continuing ? (
+              <>
+                <span
+                  className="inline-block h-4 w-4 animate-spin rounded-full border-2"
+                  style={{ borderColor: "rgba(255,255,255,0.3)", borderTopColor: "#FFF" }}
+                />
+                Merging documents...
+              </>
+            ) : (
+              <>
+                Continue with {documents.length} document{documents.length !== 1 ? "s" : ""} →
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {error && (
         <div
