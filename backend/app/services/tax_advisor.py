@@ -28,8 +28,36 @@ _DOLLAR_RE = re.compile(r'\$\s*[\d,]+')
 
 def _template_explanation(step: CalculationStep) -> str:
     if step.is_flag:
-        return f"See {step.rule_reference} for the applicable exemption rule."
-    return f"See {step.rule_reference} above."
+        return (
+            f"This flag is triggered by {step.rule_reference}. "
+            "Review the rule to confirm whether it applies to your situation."
+        )
+    return (
+        f"This step applies {step.rule_reference}. "
+        "The amount shown is determined by that rule for your filing type."
+    )
+
+
+def _build_user_context_block(user_context: Optional[UserContext]) -> str:
+    """Build a plain-text block summarising the filer's context for the LLM prompt."""
+    if not user_context:
+        return ""
+    visa = user_context.visa_type or "unknown"
+    years_in_us: Optional[int] = None
+    if user_context.first_us_entry_date:
+        try:
+            from app.services.tax_engine import _years_on_visa
+            years_in_us = _years_on_visa(user_context.first_us_entry_date)
+        except Exception:
+            pass
+    income_source = getattr(user_context, "income_source", None) or "unknown"
+    lines = [
+        "FILER CONTEXT (use this to personalise every explanation):",
+        f"  visa_type: {visa}",
+        f"  years_in_us: {years_in_us if years_in_us is not None else 'unknown'}",
+        f"  income_source: {income_source}",
+    ]
+    return "\n".join(lines)
 
 
 async def run_tax_analysis(
@@ -57,7 +85,7 @@ async def run_tax_analysis(
         )
 
     # Step 2: AI batch explanation (graceful fallback on any failure)
-    steps = await _add_explanations(steps, preferences)
+    steps = await _add_explanations(steps, preferences, user_context)
 
     # Build outcome explanation from the last non-flag step
     outcome_step = next((s for s in reversed(steps) if not s.is_flag), None)
@@ -87,6 +115,7 @@ async def run_tax_analysis(
 async def _add_explanations(
     steps: list[CalculationStep],
     preferences: Optional[AnalysisPreferences] = None,
+    user_context: Optional[UserContext] = None,
 ) -> list[CalculationStep]:
     """Call the LLM once to get explanations for all steps.
 
@@ -105,7 +134,10 @@ async def _add_explanations(
         }
         for s in steps
     ]
-    user_content = json.dumps(steps_payload, indent=2)
+    # Prepend filer context so the LLM can personalise every explanation
+    ctx_block = _build_user_context_block(user_context)
+    steps_json = json.dumps(steps_payload, indent=2)
+    user_content = f"{ctx_block}\n\n{steps_json}" if ctx_block else steps_json
 
     try:
         data = await chat_json(

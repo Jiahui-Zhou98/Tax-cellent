@@ -104,6 +104,21 @@ def _apply_brackets(
     return round(tax, 2)
 
 
+def _years_on_visa(entry_date_str: Optional[str]) -> Optional[int]:
+    """Return calendar years elapsed since first US entry, or None if unparseable.
+
+    Used for FICA exemption and Form 8843 exempt-year counts.
+    Example: entry "2022-09-01" with CURRENT_TAX_YEAR=2025 → 3.
+    """
+    if not entry_date_str:
+        return None
+    try:
+        entry_year = int(str(entry_date_str)[:4])
+        return CURRENT_TAX_YEAR - entry_year
+    except (ValueError, TypeError):
+        return None
+
+
 def _is_fica_exempt(visa_type: str, first_entry_year: Optional[str]) -> bool:
     """Return True if the user is exempt from FICA under IRC §3121(b)(19).
 
@@ -113,14 +128,10 @@ def _is_fica_exempt(visa_type: str, first_entry_year: Optional[str]) -> bool:
     """
     if visa_type not in FICA_EXEMPT_VISA_TYPES:
         return False
-    if not first_entry_year:
+    years = _years_on_visa(first_entry_year)
+    if years is None:
         return False
-    try:
-        entry_year = int(str(first_entry_year)[:4])
-        years_elapsed = CURRENT_TAX_YEAR - entry_year
-        return years_elapsed < FICA_EXEMPT_MAX_YEARS
-    except (ValueError, TypeError):
-        return False
+    return years < FICA_EXEMPT_MAX_YEARS
 
 
 def _determine_residency(user_context: Optional[UserContext]) -> str:
@@ -158,14 +169,12 @@ def _determine_residency(user_context: Optional[UserContext]) -> str:
         entry_str = user_context.first_us_entry_date
         if not entry_str:
             return "NRA"  # no entry date → conservative NRA
-        try:
-            entry_year = int(str(entry_str)[:4])
-            years_elapsed = CURRENT_TAX_YEAR - entry_year
-            if years_elapsed < FICA_EXEMPT_MAX_YEARS:
-                return "NRA"
-            # 5+ years: no longer an exempt individual; fall through to SPT
-        except (ValueError, TypeError):
+        years_elapsed = _years_on_visa(entry_str)
+        if years_elapsed is None:
             return "NRA"  # unparseable → conservative NRA
+        if years_elapsed < FICA_EXEMPT_MAX_YEARS:
+            return "NRA"
+        # 5+ years: no longer an exempt individual; fall through to SPT
 
     # Rule 3: Substantial Presence Test (H-1B, B-1/B-2, etc., and F-1 >= 5 yrs)
     d0 = user_context.current_year_days_in_us or 0
@@ -211,15 +220,8 @@ def _check_8843_eligibility(
     residency = _determine_residency(user_context)
 
     entry_str = user_context.first_us_entry_date
-    if not entry_str:
-        if residency == "RA":
-            return "resident_alien_warning", 0
-        return "exempt", 0
-
-    try:
-        entry_year = int(str(entry_str)[:4])
-        years_elapsed = CURRENT_TAX_YEAR - entry_year  # calendar years since first entry
-    except (ValueError, TypeError):
+    years_elapsed = _years_on_visa(entry_str)
+    if years_elapsed is None:
         if residency == "RA":
             return "resident_alien_warning", 0
         return "exempt", 0
